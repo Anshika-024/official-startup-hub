@@ -1,2 +1,0 @@
-CREATE POLICY "Allow pilot telemetry inserts" ON public.telemetry_ledger FOR INSERT TO anon, authenticated WITH CHECK (api_endpoint = '/v1/pilot/telemetry/event' AND action = 'AUTONOMOUS_SORT_VERIFIED' AND status = 'COMMITTED');
-GRANT INSERT ON public.telemetry_ledger TO anon;
