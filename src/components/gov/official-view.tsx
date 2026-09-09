@@ -233,28 +233,87 @@ export function OfficialView() {
           {isGenerating && <Skeleton className="h-48 w-full" />}
 
           {!isGenerating && memoReady && (
-            <div className="border-2 border-black bg-white p-6 font-serif text-slate-900">
-              <p className="text-center text-sm tracking-widest uppercase">
-                Government of India — Ministry of Electronics &amp; IT
-              </p>
-              <p className="mt-1 text-center text-sm">Office Memorandum</p>
-              <p className="mt-4 text-sm">No. GEM/2026/PIL/4471 — Dated 09 September 2026</p>
-              <p className="mt-4 leading-relaxed">
-                Subject: Justification for limited-tender pilot procurement of an indigenous
-                interoperability layer under Rule 166 of the General Financial Rules, 2017.
-              </p>
-              <p className="mt-4 leading-relaxed">
-                The undersigned is directed to state that the proposed pilot engagement, valued at
-                ₹45.2 lakh (escrowed), satisfies the innovation-procurement exemption. The vendor
-                operates strictly within an isolated sandbox; no production data is exposed, and all
-                calls are recorded in the immutable telemetry ledger for CVC review.
-              </p>
-              <p className="mt-4 leading-relaxed">
-                Approval of the competent authority is accordingly solicited.
-              </p>
-              <p className="mt-8 text-right">(Deputy Secretary, Procurement Reform)</p>
-            </div>
+            <Button variant="outline" onClick={() => setMemoOpen(true)} className="border-slate-300">
+              View Generated Memorandum
+            </Button>
           )}
+
+          <Dialog open={memoOpen} onOpenChange={setMemoOpen}>
+            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto bg-white">
+              <DialogHeader className="no-print">
+                <DialogTitle>Office Memorandum — GFR 2017 Rule 166</DialogTitle>
+                <DialogDescription>Draft for competent-authority approval.</DialogDescription>
+              </DialogHeader>
+
+              <div id="gfr-memo" className="border-2 border-black bg-white p-8 font-serif text-slate-900">
+                <p className="text-center text-base font-bold tracking-widest uppercase">
+                  Government of India
+                </p>
+                <p className="text-center text-sm tracking-widest uppercase">
+                  Ministry of Electronics &amp; Information Technology
+                </p>
+                <p className="mt-1 text-center text-sm underline underline-offset-4">
+                  OFFICE MEMORANDUM
+                </p>
+                <p className="mt-6 text-sm">No. GEM/2026/PIL/4471</p>
+                <p className="text-sm">Dated: {memoStats.generatedAt}</p>
+
+                <p className="mt-6 font-bold leading-relaxed">
+                  Subject: Single-source procurement justification for pilot deployment of an
+                  indigenous interoperability layer — under Rule 166 of the General Financial Rules
+                  (GFR), 2017.
+                </p>
+
+                <p className="mt-4 text-sm leading-relaxed">
+                  1. The undersigned is directed to refer to the pilot engagement valued at ₹45.2
+                  lakh (escrowed under pilot caps) and to state that the procurement is proposed on
+                  a single-source basis in accordance with Rule 166 of GFR 2017, which permits
+                  procurement from a single source where such a course is certified to be in the
+                  public interest and standardisation of supply or compatibility with existing
+                  systems so warrants.
+                </p>
+
+                <p className="mt-4 text-sm leading-relaxed">
+                  2. <span className="font-bold">Telemetry evidence:</span> As on the date of this
+                  memorandum, the immutable telemetry ledger records{" "}
+                  <span className="font-bold">{memoStats.total} verified API events</span>, of
+                  which <span className="font-bold">{memoStats.committed} are COMMITTED</span>{" "}
+                  transactions executed within the isolated sandbox. All calls are append-only and
+                  available for audit, evidencing functional compatibility of the vendor layer with
+                  departmental legacy systems.
+                </p>
+
+                <p className="mt-4 text-sm leading-relaxed">
+                  3. <span className="font-bold">Single-source justification:</span> The vendor
+                  solution is the sole indigenous implementation interoperable with the legacy SOAP
+                  estate through the certified XSLT translation bridge; competitive substitution
+                  would render existing integration investment infructuous.
+                </p>
+
+                <p className="mt-4 text-sm leading-relaxed">
+                  4. <span className="font-bold">Vigilance clearance:</span> The proposal has been
+                  screened against CVC vigilance norms. No adverse observation is pending; the
+                  engagement carries a <span className="font-bold">Low Risk</span> classification
+                  with zero open observations. The vendor operates strictly within an isolated
+                  sandbox; no production data is exposed.
+                </p>
+
+                <p className="mt-4 text-sm leading-relaxed">
+                  5. Approval of the competent authority is accordingly solicited for award of the
+                  pilot contract on the above terms.
+                </p>
+
+                <p className="mt-10 text-right text-sm">(Deputy Secretary)</p>
+                <p className="text-right text-sm">Procurement Reform Division</p>
+              </div>
+
+              <div className="no-print flex justify-end">
+                <Button onClick={handlePrint} className="bg-blue-800 text-white hover:bg-blue-900">
+                  <Printer className="mr-2 h-4 w-4" /> Print / Export PDF
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>
