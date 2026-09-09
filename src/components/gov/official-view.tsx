@@ -32,17 +32,29 @@ interface LedgerRow {
 }
 
 export function OfficialView() {
+  const runMemo = useServerFn(generateGfrMemo);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [memoReady, setMemoReady] = useState(false);
   const [memoOpen, setMemoOpen] = useState(false);
-  const [memoStats, setMemoStats] = useState({ total: 0, committed: 0, generatedAt: "" });
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [memo, setMemo] = useState<GfrMemo | null>(null);
+  const [needs, setNeeds] = useState<Array<{ id: string; department: string; need_description: string }>>([]);
+  const [startups, setStartups] = useState<string[]>([]);
+  const [needId, setNeedId] = useState("");
+  const [startupName, setStartupName] = useState("");
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      supabase.from("procurement_needs").select("id, department, need_description").order("created_at"),
+      supabase.from("startup_pitches").select("startup_name").order("created_at"),
+    ]).then(([needRes, startupRes]) => {
+      if (cancelled) return;
+      setNeeds(needRes.data ?? []);
+      setStartups((startupRes.data ?? []).map((s) => s.startup_name));
+    });
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      cancelled = true;
     };
   }, []);
 
