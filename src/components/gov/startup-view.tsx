@@ -1,5 +1,7 @@
-import { ArrowRight, Copy, KeyRound, Server } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Copy, KeyRound, Radio, Server } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -12,6 +14,27 @@ const sandboxItems = [
 ];
 
 export function StartupView() {
+  const [isSimulating, setIsSimulating] = useState(false);
+
+  const handleSimulate = async () => {
+    if (isSimulating) return;
+    setIsSimulating(true);
+    const { error } = await supabase.from("telemetry_ledger").insert({
+      api_endpoint: "/v1/pilot/telemetry/event",
+      action: "AUTONOMOUS_SORT_VERIFIED",
+      status: "COMMITTED",
+      ts: new Date().toISOString(),
+    });
+    setIsSimulating(false);
+    if (error) {
+      toast.error("Telemetry event rejected", { description: error.message });
+    } else {
+      toast.success("Live telemetry event committed", {
+        description: "The event now appears at the top of the official telemetry ledger.",
+      });
+    }
+  };
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(API_KEY);
@@ -70,6 +93,15 @@ export function StartupView() {
                 <p className="font-mono text-sm text-slate-500">WSDL 1.1 / XML</p>
               </div>
             </div>
+            <Button
+              onClick={handleSimulate}
+              disabled={isSimulating}
+              variant="outline"
+              className="mt-4 w-full border-blue-800 text-blue-800 hover:bg-blue-50 hover:text-blue-900"
+            >
+              <Radio className="mr-2 h-4 w-4" />
+              {isSimulating ? "Transmitting…" : "Simulate Live Pilot Telemetry"}
+            </Button>
           </CardContent>
         </Card>
       </div>
