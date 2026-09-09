@@ -81,7 +81,7 @@ export function OfficialView() {
     const loadLedger = async () => {
       const { data, error } = await supabase
         .from("telemetry_ledger")
-        .select("id, ts, api_endpoint, action, status")
+        .select("id, ts, api_endpoint, action, status, row_hash, prev_hash")
         .order("ts", { ascending: false });
       if (cancelled) return;
       if (error) {
@@ -177,9 +177,22 @@ export function OfficialView() {
       </div>
 
       <Card className="border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-base">Telemetry Ledger</CardTitle>
-          <CardDescription>Immutable append-only log of procurement API events.</CardDescription>
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <CardTitle className="text-base">Telemetry Ledger</CardTitle>
+            <CardDescription>
+              Hash-chained append-only log of procurement API events.
+            </CardDescription>
+          </div>
+          <Button
+            onClick={handleVerifyChain}
+            disabled={isVerifying}
+            variant="outline"
+            className="border-blue-800 text-blue-800 hover:bg-blue-50 hover:text-blue-900"
+          >
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            {isVerifying ? "Verifying…" : "Verify Chain Integrity"}
+          </Button>
         </CardHeader>
         <CardContent className="px-0">
           <div className="overflow-x-auto">
@@ -190,20 +203,21 @@ export function OfficialView() {
                   <TableHead className="text-slate-200">API Endpoint</TableHead>
                   <TableHead className="text-slate-200">Action</TableHead>
                   <TableHead className="text-slate-200">Status</TableHead>
+                  <TableHead className="text-slate-200">Integrity</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ledgerLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={`skeleton-${i}`}>
-                      <TableCell colSpan={4} className="p-2">
+                      <TableCell colSpan={5} className="p-2">
                         <Skeleton className="h-6 w-full" />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-slate-500">
+                    <TableCell colSpan={5} className="text-center text-sm text-slate-500">
                       No telemetry events recorded yet.
                     </TableCell>
                   </TableRow>
@@ -226,6 +240,32 @@ export function OfficialView() {
                           />
                           <span className="font-mono text-sm">{row.status}</span>
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {row.row_hash ? (
+                          <TooltipProvider delayDuration={100}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex cursor-help items-center gap-2">
+                                  <ShieldCheck className="h-4 w-4 text-green-600" />
+                                  <span className="font-mono text-xs text-slate-600">
+                                    {row.row_hash.slice(0, 8)}
+                                  </span>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-sm bg-slate-900 text-slate-100">
+                                <p className="font-mono text-xs break-all">
+                                  hash: {row.row_hash}
+                                </p>
+                                <p className="mt-1 font-mono text-xs break-all">
+                                  prev: {row.prev_hash ?? "—"}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <span className="font-mono text-xs text-slate-400">unhashed</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
