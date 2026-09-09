@@ -95,6 +95,8 @@ export type Database = {
           api_endpoint: string
           created_at: string
           id: string
+          prev_hash: string | null
+          row_hash: string | null
           status: string
           ts: string
         }
@@ -103,6 +105,8 @@ export type Database = {
           api_endpoint: string
           created_at?: string
           id?: string
+          prev_hash?: string | null
+          row_hash?: string | null
           status?: string
           ts?: string
         }
@@ -111,6 +115,8 @@ export type Database = {
           api_endpoint?: string
           created_at?: string
           id?: string
+          prev_hash?: string | null
+          row_hash?: string | null
           status?: string
           ts?: string
         }
@@ -128,6 +134,26 @@ export type Database = {
           id: string
           rule_reference: string
           similarity: number
+        }[]
+      }
+      telemetry_chain_payload: {
+        Args: {
+          _action: string
+          _api_endpoint: string
+          _prev_hash: string
+          _status: string
+          _ts: string
+        }
+        Returns: string
+      }
+      verify_telemetry_chain: {
+        Args: never
+        Returns: {
+          broken_endpoint: string
+          broken_id: string
+          broken_ts: string
+          is_valid: boolean
+          total_records: number
         }[]
       }
     }
