@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FileText, IndianRupee, ScrollText, ShieldCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,38 +15,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const ledger = [
-  {
-    ts: "2026-09-09T06:12:44Z",
-    endpoint: "/v1/pilots/4471/budget",
-    action: "BUDGET_LOCK",
-    status: "COMMITTED",
-  },
-  {
-    ts: "2026-09-09T05:58:02Z",
-    endpoint: "/v1/vendors/kyc/verify",
-    action: "KYC_VERIFY",
-    status: "COMMITTED",
-  },
-  {
-    ts: "2026-09-08T18:31:17Z",
-    endpoint: "/v1/sandbox/containers/spawn",
-    action: "SANDBOX_SPAWN",
-    status: "COMMITTED",
-  },
-  {
-    ts: "2026-09-08T14:02:55Z",
-    endpoint: "/v1/gfr/rule166/draft",
-    action: "MEMO_DRAFT",
-    status: "PENDING",
-  },
-  {
-    ts: "2026-09-08T09:44:10Z",
-    endpoint: "/v1/legacy/soap/bridge",
-    action: "BRIDGE_SYNC",
-    status: "COMMITTED",
-  },
-];
+interface LedgerRow {
+  id: string;
+  ts: string;
+  api_endpoint: string;
+  action: string;
+  status: string;
+}
 
 export function OfficialView() {
   const [isGenerating, setIsGenerating] = useState(false);
