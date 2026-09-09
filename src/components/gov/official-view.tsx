@@ -145,27 +145,43 @@ export function OfficialView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ledger.map((row) => (
-                  <TableRow key={row.ts}>
-                    <TableCell className="font-mono text-sm text-slate-600">{row.ts}</TableCell>
-                    <TableCell className="font-mono text-sm text-slate-900">
-                      {row.endpoint}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-slate-600">{row.action}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center gap-2 text-sm">
-                        <span
-                          className={
-                            row.status === "COMMITTED"
-                              ? "h-2 w-2 rounded-full bg-green-500"
-                              : "h-2 w-2 rounded-full bg-amber-500"
-                          }
-                        />
-                        <span className="font-mono text-sm">{row.status}</span>
-                      </span>
+                {ledgerLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={`skeleton-${i}`}>
+                      <TableCell colSpan={4} className="p-2">
+                        <Skeleton className="h-6 w-full" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-sm text-slate-500">
+                      No telemetry events recorded yet.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  rows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-mono text-sm text-slate-600">{row.ts}</TableCell>
+                      <TableCell className="font-mono text-sm text-slate-900">
+                        {row.api_endpoint}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm text-slate-600">{row.action}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-2 text-sm">
+                          <span
+                            className={
+                              row.status === "COMMITTED"
+                                ? "h-2 w-2 rounded-full bg-green-500"
+                                : "h-2 w-2 rounded-full bg-amber-500"
+                            }
+                          />
+                          <span className="font-mono text-sm">{row.status}</span>
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
