@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { FileText, IndianRupee, ScrollText, ShieldCheck } from "lucide-react";
+import { FileText, IndianRupee, Printer, ScrollText, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
