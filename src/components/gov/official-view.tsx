@@ -33,6 +33,8 @@ interface LedgerRow {
 export function OfficialView() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [memoReady, setMemoReady] = useState(false);
+  const [memoOpen, setMemoOpen] = useState(false);
+  const [memoStats, setMemoStats] = useState({ total: 0, committed: 0, generatedAt: "" });
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(true);
@@ -83,14 +85,29 @@ export function OfficialView() {
     if (isGenerating) return;
     setMemoReady(false);
     setIsGenerating(true);
-    timeoutRef.current = setTimeout(() => {
+    timeoutRef.current = setTimeout(async () => {
+      const { count: total } = await supabase
+        .from("telemetry_ledger")
+        .select("id", { count: "exact", head: true });
+      const { count: committed } = await supabase
+        .from("telemetry_ledger")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "COMMITTED");
+      setMemoStats({
+        total: total ?? rows.length,
+        committed: committed ?? 0,
+        generatedAt: new Date().toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" }),
+      });
       setIsGenerating(false);
       setMemoReady(true);
+      setMemoOpen(true);
       toast.success("Rule 166 GFR memo generated", {
         description: "Draft attached to pilot file GEM/2026/PIL/4471.",
       });
     }, 2000);
   };
+
+  const handlePrint = () => window.print();
 
   return (
     <div className="space-y-6">
