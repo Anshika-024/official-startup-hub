@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      gfr_rules_kb: {
+        Row: {
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+          rule_reference: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          rule_reference: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          rule_reference?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       procurement_needs: {
         Row: {
           budget_range: string
@@ -94,7 +121,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_gfr_rules: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          content: string
+          id: string
+          rule_reference: string
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
