@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      procurement_needs: {
+        Row: {
+          budget_range: string
+          created_at: string
+          department: string
+          id: string
+          need_description: string
+        }
+        Insert: {
+          budget_range: string
+          created_at?: string
+          department: string
+          id?: string
+          need_description: string
+        }
+        Update: {
+          budget_range?: string
+          created_at?: string
+          department?: string
+          id?: string
+          need_description?: string
+        }
+        Relationships: []
+      }
+      startup_pitches: {
+        Row: {
+          created_at: string
+          id: string
+          pitch_text: string
+          sector: string
+          startup_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pitch_text: string
+          sector: string
+          startup_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pitch_text?: string
+          sector?: string
+          startup_name?: string
+        }
+        Relationships: []
+      }
       telemetry_ledger: {
         Row: {
           action: string

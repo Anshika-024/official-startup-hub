@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FileText, IndianRupee, Printer, ScrollText, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { MatchmakingCard } from "@/components/gov/matchmaking-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -211,6 +212,8 @@ export function OfficialView() {
           </div>
         </CardContent>
       </Card>
+
+      <MatchmakingCard />
 
       <Card className="border-slate-200">
         <CardHeader>
