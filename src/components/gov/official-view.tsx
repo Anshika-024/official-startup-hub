@@ -94,30 +94,24 @@ export function OfficialView() {
     };
   }, []);
 
-  const handleGenerate = () => {
-    if (isGenerating) return;
-    setMemoReady(false);
+  const handleGenerate = async () => {
+    if (isGenerating || !needId || !startupName) return;
     setIsGenerating(true);
-    timeoutRef.current = setTimeout(async () => {
-      const { count: total } = await supabase
-        .from("telemetry_ledger")
-        .select("id", { count: "exact", head: true });
-      const { count: committed } = await supabase
-        .from("telemetry_ledger")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "COMMITTED");
-      setMemoStats({
-        total: total ?? rows.length,
-        committed: committed ?? 0,
-        generatedAt: new Date().toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" }),
-      });
-      setIsGenerating(false);
-      setMemoReady(true);
+    setMemo(null);
+    try {
+      const result = await runMemo({ data: { needId, startupName } });
+      setMemo(result);
       setMemoOpen(true);
       toast.success("Rule 166 GFR memo generated", {
         description: "Draft attached to pilot file GEM/2026/PIL/4471.",
       });
-    }, 2000);
+    } catch (error) {
+      toast.error("Memo generation failed", {
+        description: error instanceof Error ? error.message : "Unexpected error.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handlePrint = () => window.print();
