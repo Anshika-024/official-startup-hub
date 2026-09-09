@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { FileText, IndianRupee, Printer, ScrollText, ShieldCheck } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { MatchmakingCard } from "@/components/gov/matchmaking-card";
@@ -38,6 +44,8 @@ interface LedgerRow {
   api_endpoint: string;
   action: string;
   status: string;
+  row_hash: string | null;
+  prev_hash: string | null;
 }
 
 export function OfficialView() {
