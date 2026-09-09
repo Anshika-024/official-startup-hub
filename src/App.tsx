@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { SidebarNav } from "@/components/gov/sidebar-nav";
 import { OfficialView } from "@/components/gov/official-view";
 import { StartupView } from "@/components/gov/startup-view";
+import { RulesAssistant } from "@/components/gov/rules-assistant";
 import { useActiveRole, type ActiveRole } from "@/hooks/use-active-role";
 
 export default function App() {
@@ -55,6 +56,8 @@ export default function App() {
           {activeRole === "official" ? <OfficialView /> : <StartupView />}
         </main>
       </div>
+
+      <RulesAssistant />
     </div>
   );
 }
