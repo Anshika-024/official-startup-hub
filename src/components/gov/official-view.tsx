@@ -27,10 +27,48 @@ export function OfficialView() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [memoReady, setMemoReady] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [rows, setRows] = useState<LedgerRow[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLedger = async () => {
+      const { data, error } = await supabase
+        .from("telemetry_ledger")
+        .select("id, ts, api_endpoint, action, status")
+        .order("ts", { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        toast.error("Failed to load telemetry ledger", { description: error.message });
+      } else {
+        setRows(data ?? []);
+      }
+      setLedgerLoading(false);
+    };
+    loadLedger();
+
+    const channel = supabase
+      .channel("telemetry-ledger-live")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "telemetry_ledger" },
+        (payload) => {
+          const newRow = payload.new as LedgerRow;
+          setRows((prev) => [newRow, ...prev]);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, []);
 
