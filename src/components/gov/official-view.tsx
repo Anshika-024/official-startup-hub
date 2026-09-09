@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FileText, IndianRupee, ScrollText, ShieldCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,47 +15,60 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const ledger = [
-  {
-    ts: "2026-09-09T06:12:44Z",
-    endpoint: "/v1/pilots/4471/budget",
-    action: "BUDGET_LOCK",
-    status: "COMMITTED",
-  },
-  {
-    ts: "2026-09-09T05:58:02Z",
-    endpoint: "/v1/vendors/kyc/verify",
-    action: "KYC_VERIFY",
-    status: "COMMITTED",
-  },
-  {
-    ts: "2026-09-08T18:31:17Z",
-    endpoint: "/v1/sandbox/containers/spawn",
-    action: "SANDBOX_SPAWN",
-    status: "COMMITTED",
-  },
-  {
-    ts: "2026-09-08T14:02:55Z",
-    endpoint: "/v1/gfr/rule166/draft",
-    action: "MEMO_DRAFT",
-    status: "PENDING",
-  },
-  {
-    ts: "2026-09-08T09:44:10Z",
-    endpoint: "/v1/legacy/soap/bridge",
-    action: "BRIDGE_SYNC",
-    status: "COMMITTED",
-  },
-];
+interface LedgerRow {
+  id: string;
+  ts: string;
+  api_endpoint: string;
+  action: string;
+  status: string;
+}
 
 export function OfficialView() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [memoReady, setMemoReady] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [rows, setRows] = useState<LedgerRow[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLedger = async () => {
+      const { data, error } = await supabase
+        .from("telemetry_ledger")
+        .select("id, ts, api_endpoint, action, status")
+        .order("ts", { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        toast.error("Failed to load telemetry ledger", { description: error.message });
+      } else {
+        setRows(data ?? []);
+      }
+      setLedgerLoading(false);
+    };
+    loadLedger();
+
+    const channel = supabase
+      .channel("telemetry-ledger-live")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "telemetry_ledger" },
+        (payload) => {
+          const newRow = payload.new as LedgerRow;
+          setRows((prev) => [newRow, ...prev]);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -131,27 +145,43 @@ export function OfficialView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ledger.map((row) => (
-                  <TableRow key={row.ts}>
-                    <TableCell className="font-mono text-sm text-slate-600">{row.ts}</TableCell>
-                    <TableCell className="font-mono text-sm text-slate-900">
-                      {row.endpoint}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-slate-600">{row.action}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center gap-2 text-sm">
-                        <span
-                          className={
-                            row.status === "COMMITTED"
-                              ? "h-2 w-2 rounded-full bg-green-500"
-                              : "h-2 w-2 rounded-full bg-amber-500"
-                          }
-                        />
-                        <span className="font-mono text-sm">{row.status}</span>
-                      </span>
+                {ledgerLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={`skeleton-${i}`}>
+                      <TableCell colSpan={4} className="p-2">
+                        <Skeleton className="h-6 w-full" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-sm text-slate-500">
+                      No telemetry events recorded yet.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  rows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-mono text-sm text-slate-600">{row.ts}</TableCell>
+                      <TableCell className="font-mono text-sm text-slate-900">
+                        {row.api_endpoint}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm text-slate-600">{row.action}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-2 text-sm">
+                          <span
+                            className={
+                              row.status === "COMMITTED"
+                                ? "h-2 w-2 rounded-full bg-green-500"
+                                : "h-2 w-2 rounded-full bg-amber-500"
+                            }
+                          />
+                          <span className="font-mono text-sm">{row.status}</span>
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

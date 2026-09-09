@@ -14,7 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      telemetry_ledger: {
+        Row: {
+          action: string
+          api_endpoint: string
+          created_at: string
+          id: string
+          status: string
+          ts: string
+        }
+        Insert: {
+          action: string
+          api_endpoint: string
+          created_at?: string
+          id?: string
+          status?: string
+          ts?: string
+        }
+        Update: {
+          action?: string
+          api_endpoint?: string
+          created_at?: string
+          id?: string
+          status?: string
+          ts?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
