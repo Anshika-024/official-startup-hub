@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { askRules } from "@/lib/rules-chat.functions";
+import { raceWithFallback } from "@/lib/ai-fallback";
+import { rulesFallback } from "@/lib/ai-fallback-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   text: string;
   citations?: string[];
+  isFallback?: boolean;
 }
 
 const WELCOME: ChatMessage = {
