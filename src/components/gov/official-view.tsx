@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FileText, IndianRupee, Printer, ScrollText, ShieldCheck } from "lucide-react";
+import {
+  FileText,
+  Gauge,
+  IndianRupee,
+  Printer,
+  ScrollText,
+  ShieldCheck,
+  WifiOff,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +19,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { MatchmakingCard } from "@/components/gov/matchmaking-card";
 import { generateGfrMemo, type GfrMemo } from "@/lib/memo.functions";
+import { pilotScorecard, type PilotScorecard } from "@/lib/scorecard.functions";
+import { raceWithFallback } from "@/lib/ai-fallback";
+import { memoFallback, SCORECARD_FALLBACK } from "@/lib/ai-fallback-data";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
