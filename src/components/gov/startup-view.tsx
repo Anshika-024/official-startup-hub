@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EligibilityCard } from "@/components/gov/eligibility-card";
 
 const API_KEY = "gem_sk_live_7f3c9a21b8e4d05fa6c1e29b4d77a310";
 
