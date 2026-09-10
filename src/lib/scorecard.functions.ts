@@ -7,6 +7,8 @@ export interface PilotScorecard {
   verdict: string;
   confidence: number;
   summary: string;
+  totalEvents?: number;
+  uptimePercent?: number;
 }
 
 function createPublicClient() {
