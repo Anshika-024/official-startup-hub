@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
-export type ActiveRole = "official" | "startup";
+export type ActiveRole = "official" | "startup" | "public";
 
 const STORAGE_KEY = "gov-procurement-active-role";
 
 function isRole(value: string | null): value is ActiveRole {
-  return value === "official" || value === "startup";
+  return value === "official" || value === "startup" || value === "public";
 }
 
 export function useActiveRole() {

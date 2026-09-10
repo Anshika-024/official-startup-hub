@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard, Rocket, ShieldCheck, Settings, Landmark } from "lucide-react";
+import { Building2, Eye, LayoutDashboard, Rocket, ShieldCheck, Settings, Landmark } from "lucide-react";
 import type { ActiveRole } from "@/hooks/use-active-role";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,7 @@ export function SidebarNav({
   const roles: { id: ActiveRole; label: string; icon: typeof Building2 }[] = [
     { id: "official", label: "Department Official", icon: Building2 },
     { id: "startup", label: "Startup Vendor", icon: Rocket },
+    { id: "public", label: "Public Viewer", icon: Eye },
   ];
 
   return (
