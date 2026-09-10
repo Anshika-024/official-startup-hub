@@ -12,13 +12,28 @@ type StartupRow = {
   verification_status: string;
 };
 
-const criteria = [
-  { label: "Prior Turnover Required", standard: true, relaxed: false },
-  { label: "Prior Experience Required", standard: true, relaxed: false },
-  { label: "EMD Required", standard: true, relaxed: false },
-];
+const CRITERIA_LABELS = [
+  "Prior Turnover Required",
+  "Prior Experience Required",
+  "EMD Required",
+] as const;
+
+const AGE_LIMIT_STATUS = "Ineligible: Exceeded 10-year limit (DPIIT G.S.R. 127(E))";
+
+/** True when incorporation is more than 10 years before today. */
+function exceedsAgeLimit(incorporationDate: string | null | undefined): boolean {
+  if (!incorporationDate) return false;
+  const inc = new Date(incorporationDate);
+  if (Number.isNaN(inc.getTime())) return false;
+  const limit = new Date();
+  limit.setFullYear(limit.getFullYear() - 10);
+  return inc.getTime() < limit.getTime();
+}
 
 function statusBadge(status: string) {
+  if (status === AGE_LIMIT_STATUS) {
+    return <Badge className="bg-red-600 text-white hover:bg-red-600">{AGE_LIMIT_STATUS}</Badge>;
+  }
   if (status === "verified") {
     return <Badge className="bg-green-600 text-white hover:bg-green-600">DPIIT Verified</Badge>;
   }
@@ -72,6 +87,17 @@ export function EligibilityCard() {
       })
     : "—";
 
+  const ageBarred = exceedsAgeLimit(startup?.incorporation_date);
+  const effectiveStatus = ageBarred
+    ? AGE_LIMIT_STATUS
+    : (startup?.verification_status ?? "not_eligible");
+  const criteria = CRITERIA_LABELS.map((label) => ({
+    label,
+    standard: true,
+    // Age-barred entities lose every startup waiver: standard GFR rules apply.
+    relaxed: ageBarred,
+  }));
+
   return (
     <Card className="border-slate-200">
       <CardHeader>
@@ -101,7 +127,7 @@ export function EligibilityCard() {
             </div>
             <div>
               <p className="text-sm text-slate-500">Status</p>
-              <div className="mt-1">{statusBadge(startup?.verification_status ?? "not_eligible")}</div>
+              <div className="mt-1">{statusBadge(effectiveStatus)}</div>
             </div>
           </div>
         )}
@@ -113,7 +139,9 @@ export function EligibilityCard() {
                 <th className="px-4 py-2 font-semibold">Criteria</th>
                 <th className="px-4 py-2 font-semibold">Standard GFR Criteria</th>
                 <th className="px-4 py-2 font-semibold">
-                  Startup-Relaxed Criteria (Rule 144 / MSE Order)
+                  {ageBarred
+                    ? "Applicable Criteria (No Startup Waiver)"
+                    : "Startup-Relaxed Criteria (Rule 144 / MSE Order)"}
                 </th>
               </tr>
             </thead>
@@ -131,6 +159,12 @@ export function EligibilityCard() {
               ))}
             </tbody>
           </table>
+          {ageBarred && (
+            <p className="border-t border-slate-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+              Entity exceeds the 10-year DPIIT age limit — standard GFR rules apply with no
+              startup relaxations.
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -51,22 +51,43 @@ export const pilotScorecard = createServerFn({ method: "POST" }).handler(
     const totalEvents = events.length;
     const committed = counts.get("COMMITTED") ?? 0;
     const failed = totalEvents - committed;
-    const uptimePercent = totalEvents === 0 ? 0 : Math.round((committed / totalEvents) * 1000) / 10;
+    const successRate = totalEvents === 0 ? 0 : (committed / totalEvents) * 100;
+    const uptimePercent = Math.round(successRate * 10) / 10;
     const breakdown = Array.from(counts.entries())
       .map(([status, count]) => `${status}: ${count}`)
       .join(", ");
 
-    const prompt = `You are a government pilot-evaluation analyst. Assess the pilot telemetry statistics below and decide whether the pilot should be scaled, extended, or terminated.
+    // Deterministic, audit-defensible verdict thresholds.
+    let verdict: string;
+    let confidence: number;
+    if (totalEvents < 5) {
+      verdict = "Extend Pilot (Insufficient Data)";
+      confidence = 50;
+    } else if (successRate >= 85) {
+      verdict = "Scale";
+      confidence = Math.round(successRate);
+    } else if (successRate >= 60) {
+      verdict = "Extend Pilot";
+      confidence = Math.round(successRate);
+    } else {
+      verdict = "Terminate";
+      confidence = Math.round(100 - successRate);
+    }
+
+    const prompt = `You are a government pilot-evaluation analyst. The verdict has ALREADY been decided by fixed statutory thresholds. Do not change it, question it, or propose another verdict.
 
 PILOT TELEMETRY STATISTICS
 Total events: ${totalEvents}
 Committed events: ${committed}
 Error/failed events: ${failed}
-Uptime: ${uptimePercent}%
+Success rate: ${uptimePercent}%
 Status breakdown: ${breakdown || "no events recorded"}
+DECIDED VERDICT: ${verdict}
 
-Reply with a json object only, no prose and no code fences, in this exact json shape:
-{"verdict": "Scale" | "Extend Pilot" | "Terminate", "confidence": number between 0 and 100, "summary": "one or two plain-English sentences"}`;
+Thresholds used: fewer than 5 total events => "Extend Pilot (Insufficient Data)"; success rate >= 85% => "Scale"; 60-84.9% => "Extend Pilot"; below 60% => "Terminate".
+
+Write exactly two sentences explaining how the success-rate metric produced this verdict. Reply with a json object only, no prose and no code fences:
+{"summary": "two sentences"}`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -97,18 +118,17 @@ Reply with a json object only, no prose and no code fences, in this exact json s
       .trim();
 
     const parsed = z
-      .object({
-        verdict: z.string(),
-        confidence: z.coerce.number(),
-        summary: z.string(),
-      })
+      .object({ summary: z.string() })
       .safeParse(JSON.parse(cleaned || "{}"));
-    if (!parsed.success) throw new Error("AI returned an unexpected result. Try again.");
+
+    const summary = parsed.success
+      ? parsed.data.summary
+      : `${committed} of ${totalEvents} ledger events were COMMITTED, a ${uptimePercent}% success rate. Applying the fixed evaluation thresholds, this yields a verdict of ${verdict}.`;
 
     return {
-      verdict: parsed.data.verdict,
-      confidence: Math.max(0, Math.min(100, Math.round(parsed.data.confidence))),
-      summary: parsed.data.summary,
+      verdict,
+      confidence: Math.max(0, Math.min(100, confidence)),
+      summary,
       totalEvents,
       uptimePercent,
     };
