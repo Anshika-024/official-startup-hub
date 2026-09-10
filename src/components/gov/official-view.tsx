@@ -251,6 +251,60 @@ export function OfficialView() {
       <Card className="border-slate-200">
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Gauge className="h-4 w-4" /> AI Pilot Scorecard
+            </CardTitle>
+            <CardDescription>
+              Evaluate recorded pilot telemetry and recommend a scale-up decision.
+            </CardDescription>
+          </div>
+          <Button
+            onClick={handleScorecard}
+            disabled={scorecardLoading}
+            className="bg-blue-800 text-white hover:bg-blue-900"
+          >
+            {scorecardLoading ? "Assessing…" : "Generate Pilot Scorecard"}
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {scorecardLoading && <Skeleton className="h-32 w-full" />}
+
+          {!scorecardLoading && scorecard && (
+            <div className="relative border border-slate-200 p-4">
+              {scorecardFallbackUsed && (
+                <WifiOff
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-slate-500 opacity-40"
+                />
+              )}
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs tracking-widest text-slate-500 uppercase">Verdict</span>
+                <Badge className={verdictBadgeClass(scorecard.verdict)}>{scorecard.verdict}</Badge>
+                <span className="ml-auto font-mono text-sm text-slate-600">
+                  {scorecard.confidence}% confidence
+                </span>
+              </div>
+              <Progress value={scorecard.confidence} className="mt-3 h-2" />
+              <p className="mt-3 text-sm text-slate-600">{scorecard.summary}</p>
+              {typeof scorecard.totalEvents === "number" && (
+                <p className="mt-2 font-mono text-xs text-slate-500">
+                  {scorecard.totalEvents} events · {scorecard.uptimePercent ?? 0}% uptime
+                </p>
+              )}
+            </div>
+          )}
+
+          {!scorecardLoading && !scorecard && (
+            <p className="text-sm text-slate-500">
+              Run the scorecard to summarise pilot uptime and get a scale-up recommendation.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200">
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
             <CardTitle className="text-base">Telemetry Ledger</CardTitle>
             <CardDescription>
               Hash-chained append-only log of procurement API events.
