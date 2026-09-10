@@ -62,9 +62,14 @@ interface LedgerRow {
 
 export function OfficialView() {
   const runMemo = useServerFn(generateGfrMemo);
+  const runScorecard = useServerFn(pilotScorecard);
   const [isGenerating, setIsGenerating] = useState(false);
   const [memoOpen, setMemoOpen] = useState(false);
   const [memo, setMemo] = useState<GfrMemo | null>(null);
+  const [memoFallbackUsed, setMemoFallbackUsed] = useState(false);
+  const [scorecard, setScorecard] = useState<PilotScorecard | null>(null);
+  const [scorecardLoading, setScorecardLoading] = useState(false);
+  const [scorecardFallbackUsed, setScorecardFallbackUsed] = useState(false);
   const [needs, setNeeds] = useState<Array<{ id: string; department: string; need_description: string }>>([]);
   const [startups, setStartups] = useState<string[]>([]);
   const [needId, setNeedId] = useState("");
