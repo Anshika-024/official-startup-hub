@@ -395,6 +395,64 @@ export function OfficialView() {
       </Card>
 
       <Card className="border-slate-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarClock className="h-4 w-4" /> Payment Compliance Tracker
+          </CardTitle>
+          <CardDescription>
+            MSME Act 45-day payment rule — milestones are paid or interest is due.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {milestonesLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Startup</TableHead>
+                  <TableHead>Milestone</TableHead>
+                  <TableHead>Invoice Date</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {milestones.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium text-slate-900">{m.startup_name}</TableCell>
+                    <TableCell className="text-sm text-slate-600">{m.milestone_description}</TableCell>
+                    <TableCell className="font-mono text-xs text-slate-600">
+                      {formatDate(m.invoice_date)}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-600">
+                      {formatDate(m.due_date)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-slate-900">
+                      {formatINR(m.amount)}
+                    </TableCell>
+                    <TableCell>{statusBadge(m)}</TableCell>
+                  </TableRow>
+                ))}
+                {milestones.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-sm text-slate-500">
+                      No payment milestones on file.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200">
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <CardTitle className="text-base">Telemetry Ledger</CardTitle>
