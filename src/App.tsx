@@ -61,7 +61,13 @@ export default function App() {
         </header>
 
         <main className="p-4 md:p-8">
-          {activeRole === "official" ? <OfficialView /> : <StartupView />}
+          {activeRole === "official" ? (
+            <OfficialView />
+          ) : activeRole === "startup" ? (
+            <StartupView />
+          ) : (
+            <PublicView />
+          )}
         </main>
       </div>
 
