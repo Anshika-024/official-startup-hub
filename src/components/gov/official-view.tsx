@@ -133,9 +133,15 @@ export function OfficialView() {
     if (isGenerating || !needId || !startupName) return;
     setIsGenerating(true);
     setMemo(null);
+    setMemoFallbackUsed(false);
     try {
-      const result = await runMemo({ data: { needId, startupName } });
+      const { value: result, isFallback } = await raceWithFallback(
+        "generate-gfr-memo",
+        () => runMemo({ data: { needId, startupName } }),
+        () => memoFallback(),
+      );
       setMemo(result);
+      setMemoFallbackUsed(isFallback);
       setMemoOpen(true);
       toast.success("Rule 166 GFR memo generated", {
         description: "Draft attached to pilot file GEM/2026/PIL/4471.",
@@ -146,6 +152,28 @@ export function OfficialView() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleScorecard = async () => {
+    if (scorecardLoading) return;
+    setScorecardLoading(true);
+    setScorecard(null);
+    setScorecardFallbackUsed(false);
+    try {
+      const { value: result, isFallback } = await raceWithFallback(
+        "pilot-scorecard",
+        () => runScorecard({ data: undefined }),
+        () => SCORECARD_FALLBACK,
+      );
+      setScorecard(result);
+      setScorecardFallbackUsed(isFallback);
+    } catch (error) {
+      toast.error("Scorecard generation failed", {
+        description: error instanceof Error ? error.message : "Unexpected error.",
+      });
+    } finally {
+      setScorecardLoading(false);
     }
   };
 
