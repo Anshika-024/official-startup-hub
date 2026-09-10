@@ -456,7 +456,16 @@ export function OfficialView() {
                 <DialogDescription>Draft for competent-authority approval.</DialogDescription>
               </DialogHeader>
 
-              <div id="gfr-memo" className="border-2 border-black bg-white p-8 font-serif text-slate-900">
+              <div
+                id="gfr-memo"
+                className="relative border-2 border-black bg-white p-8 font-serif text-slate-900"
+              >
+                {memoFallbackUsed && (
+                  <WifiOff
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-slate-500 opacity-40"
+                  />
+                )}
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{memo?.memo_text}</p>
               </div>
 
