@@ -42,16 +42,31 @@ export const pilotScorecard = createServerFn({ method: "POST" }).handler(
       .limit(50);
     if (error) throw new Error(error.message);
 
-    const ledger = (rows ?? [])
-      .map((r) => `${r.ts} | ${r.api_endpoint} | ${r.action} | ${r.status}`)
-      .join("\n");
+    const events = rows ?? [];
+    const counts = new Map<string, number>();
+    for (const r of events) {
+      const status = (r.status ?? "UNKNOWN").toUpperCase();
+      counts.set(status, (counts.get(status) ?? 0) + 1);
+    }
+    const totalEvents = events.length;
+    const committed = counts.get("COMMITTED") ?? 0;
+    const failed = totalEvents - committed;
+    const uptimePercent = totalEvents === 0 ? 0 : Math.round((committed / totalEvents) * 1000) / 10;
+    const breakdown = Array.from(counts.entries())
+      .map(([status, count]) => `${status}: ${count}`)
+      .join(", ");
 
-    const prompt = `You are a government pilot-evaluation analyst. Assess the pilot telemetry below and decide whether the pilot should be scaled, extended, or discontinued.
+    const prompt = `You are a government pilot-evaluation analyst. Assess the pilot telemetry statistics below and decide whether the pilot should be scaled, extended, or terminated.
 
-TELEMETRY LEDGER (most recent first)
-${ledger || "No telemetry events recorded."}
+PILOT TELEMETRY STATISTICS
+Total events: ${totalEvents}
+Committed events: ${committed}
+Error/failed events: ${failed}
+Uptime: ${uptimePercent}%
+Status breakdown: ${breakdown || "no events recorded"}
 
-Return ONLY {"verdict": "Scale" | "Extend" | "Discontinue", "confidence": number 0-100, "summary": "two sentences at most"}.`;
+Reply with a json object only, no prose and no code fences, in this exact json shape:
+{"verdict": "Scale" | "Extend Pilot" | "Terminate", "confidence": number between 0 and 100, "summary": "one or two plain-English sentences"}`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
