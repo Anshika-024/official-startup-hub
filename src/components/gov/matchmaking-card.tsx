@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { Sparkles, WifiOff } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { matchStartups, type StartupMatch } from "@/lib/matchmaking.functions";
+import { raceWithFallback } from "@/lib/ai-fallback";
+import { MATCH_FALLBACK } from "@/lib/ai-fallback-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +32,7 @@ export function MatchmakingCard() {
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState<StartupMatch[] | null>(null);
+  const [isFallback, setIsFallback] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,9 +59,15 @@ export function MatchmakingCard() {
     if (!selectedId || loading) return;
     setLoading(true);
     setMatches(null);
+    setIsFallback(false);
     try {
-      const result = await runMatch({ data: { needId: selectedId } });
+      const { value: result, isFallback: usedFallback } = await raceWithFallback(
+        "match-startups",
+        () => runMatch({ data: { needId: selectedId } }),
+        () => MATCH_FALLBACK,
+      );
       setMatches(result);
+      setIsFallback(usedFallback);
       toast.success("Matching complete", {
         description: `${result.length} startups ranked against the selected need.`,
       });
@@ -127,7 +136,13 @@ export function MatchmakingCard() {
         )}
 
         {!loading && matches && matches.length > 0 && (
-          <ol className="space-y-3">
+          <ol className="relative space-y-3">
+            {isFallback && (
+              <WifiOff
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-3 right-0 h-3.5 w-3.5 text-slate-500 opacity-40"
+              />
+            )}
             {matches.map((match, index) => (
               <li key={`${match.startup_name}-${index}`} className="border border-slate-200 p-4">
                 <div className="flex flex-wrap items-center gap-3">

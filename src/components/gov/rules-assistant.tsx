@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { askRules } from "@/lib/rules-chat.functions";
+import { raceWithFallback } from "@/lib/ai-fallback";
+import { rulesFallback } from "@/lib/ai-fallback-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   text: string;
   citations?: string[];
+  isFallback?: boolean;
 }
 
 const WELCOME: ChatMessage = {
@@ -53,7 +56,11 @@ export function RulesAssistant() {
     setMessages((prev) => [...prev, { id: `u-${Date.now()}`, role: "user", text }]);
     setIsThinking(true);
     try {
-      const result = await ask({ data: { question: text } });
+      const { value: result, isFallback } = await raceWithFallback(
+        "rules-chat",
+        () => ask({ data: { question: text } }),
+        () => rulesFallback(text),
+      );
       setMessages((prev) => [
         ...prev,
         {
@@ -61,6 +68,7 @@ export function RulesAssistant() {
           role: "assistant",
           text: result.answer,
           citations: result.citations,
+          isFallback,
         },
       ]);
     } catch (error) {
@@ -112,9 +120,15 @@ export function RulesAssistant() {
               </div>
             ) : (
               <div key={message.id} className="flex flex-col items-start gap-2">
-                <p className="max-w-[90%] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800">
-                  {message.text}
-                </p>
+                <div className="relative max-w-[90%] border border-slate-300 bg-white px-3 py-2">
+                  <p className="text-sm text-slate-800">{message.text}</p>
+                  {message.isFallback && (
+                    <WifiOff
+                      aria-hidden="true"
+                      className="pointer-events-none absolute top-1 right-1 h-3 w-3 text-slate-500 opacity-40"
+                    />
+                  )}
+                </div>
                 {!!message.citations?.length && (
                   <div className="flex flex-wrap gap-2">
                     {message.citations.map((c) => (

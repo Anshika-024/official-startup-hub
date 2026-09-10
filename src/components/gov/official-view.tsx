@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FileText, IndianRupee, Printer, ScrollText, ShieldCheck } from "lucide-react";
+import {
+  FileText,
+  Gauge,
+  IndianRupee,
+  Printer,
+  ScrollText,
+  ShieldCheck,
+  WifiOff,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +19,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { MatchmakingCard } from "@/components/gov/matchmaking-card";
 import { generateGfrMemo, type GfrMemo } from "@/lib/memo.functions";
+import { pilotScorecard, type PilotScorecard } from "@/lib/scorecard.functions";
+import { raceWithFallback } from "@/lib/ai-fallback";
+import { memoFallback, SCORECARD_FALLBACK } from "@/lib/ai-fallback-data";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -50,9 +62,14 @@ interface LedgerRow {
 
 export function OfficialView() {
   const runMemo = useServerFn(generateGfrMemo);
+  const runScorecard = useServerFn(pilotScorecard);
   const [isGenerating, setIsGenerating] = useState(false);
   const [memoOpen, setMemoOpen] = useState(false);
   const [memo, setMemo] = useState<GfrMemo | null>(null);
+  const [memoFallbackUsed, setMemoFallbackUsed] = useState(false);
+  const [scorecard, setScorecard] = useState<PilotScorecard | null>(null);
+  const [scorecardLoading, setScorecardLoading] = useState(false);
+  const [scorecardFallbackUsed, setScorecardFallbackUsed] = useState(false);
   const [needs, setNeeds] = useState<Array<{ id: string; department: string; need_description: string }>>([]);
   const [startups, setStartups] = useState<string[]>([]);
   const [needId, setNeedId] = useState("");
@@ -116,9 +133,15 @@ export function OfficialView() {
     if (isGenerating || !needId || !startupName) return;
     setIsGenerating(true);
     setMemo(null);
+    setMemoFallbackUsed(false);
     try {
-      const result = await runMemo({ data: { needId, startupName } });
+      const { value: result, isFallback } = await raceWithFallback(
+        "generate-gfr-memo",
+        () => runMemo({ data: { needId, startupName } }),
+        () => memoFallback(),
+      );
       setMemo(result);
+      setMemoFallbackUsed(isFallback);
       setMemoOpen(true);
       toast.success("Rule 166 GFR memo generated", {
         description: "Draft attached to pilot file GEM/2026/PIL/4471.",
@@ -129,6 +152,28 @@ export function OfficialView() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleScorecard = async () => {
+    if (scorecardLoading) return;
+    setScorecardLoading(true);
+    setScorecard(null);
+    setScorecardFallbackUsed(false);
+    try {
+      const { value: result, isFallback } = await raceWithFallback(
+        "pilot-scorecard",
+        () => runScorecard({ data: undefined }),
+        () => SCORECARD_FALLBACK,
+      );
+      setScorecard(result);
+      setScorecardFallbackUsed(isFallback);
+    } catch (error) {
+      toast.error("Scorecard generation failed", {
+        description: error instanceof Error ? error.message : "Unexpected error.",
+      });
+    } finally {
+      setScorecardLoading(false);
     }
   };
 
@@ -308,6 +353,50 @@ export function OfficialView() {
       <Card className="border-slate-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
+            <Gauge className="h-4 w-4" /> AI Pilot Performance Scorecard
+          </CardTitle>
+          <CardDescription>
+            Evaluate recorded pilot telemetry and recommend a scale-up decision.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            onClick={handleScorecard}
+            disabled={scorecardLoading}
+            className="bg-blue-800 text-white hover:bg-blue-900"
+          >
+            {scorecardLoading ? "Assessing…" : "Generate Pilot Scorecard"}
+          </Button>
+
+          {scorecardLoading && <Skeleton className="h-32 w-full" />}
+
+          {!scorecardLoading && scorecard && (
+            <div className="relative border border-slate-200 p-4">
+              {scorecardFallbackUsed && (
+                <WifiOff
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-slate-500 opacity-40"
+                />
+              )}
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs tracking-widest text-slate-500 uppercase">Verdict</span>
+                <Badge className="bg-slate-900 text-white hover:bg-slate-900">
+                  {scorecard.verdict}
+                </Badge>
+                <span className="ml-auto font-mono text-sm text-slate-600">
+                  {scorecard.confidence}% confidence
+                </span>
+              </div>
+              <Progress value={scorecard.confidence} className="mt-3 h-2" />
+              <p className="mt-3 text-sm text-slate-600">{scorecard.summary}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
             <FileText className="h-4 w-4" /> AI Compliance Shield
           </CardTitle>
           <CardDescription>
@@ -367,7 +456,16 @@ export function OfficialView() {
                 <DialogDescription>Draft for competent-authority approval.</DialogDescription>
               </DialogHeader>
 
-              <div id="gfr-memo" className="border-2 border-black bg-white p-8 font-serif text-slate-900">
+              <div
+                id="gfr-memo"
+                className="relative border-2 border-black bg-white p-8 font-serif text-slate-900"
+              >
+                {memoFallbackUsed && (
+                  <WifiOff
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-slate-500 opacity-40"
+                  />
+                )}
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{memo?.memo_text}</p>
               </div>
 
