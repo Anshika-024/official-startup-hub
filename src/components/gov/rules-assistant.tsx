@@ -56,7 +56,11 @@ export function RulesAssistant() {
     setMessages((prev) => [...prev, { id: `u-${Date.now()}`, role: "user", text }]);
     setIsThinking(true);
     try {
-      const result = await ask({ data: { question: text } });
+      const { value: result, isFallback } = await raceWithFallback(
+        "rules-chat",
+        () => ask({ data: { question: text } }),
+        () => rulesFallback(text),
+      );
       setMessages((prev) => [
         ...prev,
         {
@@ -64,6 +68,7 @@ export function RulesAssistant() {
           role: "assistant",
           text: result.answer,
           citations: result.citations,
+          isFallback,
         },
       ]);
     } catch (error) {
