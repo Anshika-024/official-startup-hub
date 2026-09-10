@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_milestones: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          id: string
+          invoice_date: string
+          milestone_description: string
+          startup_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          due_date: string
+          id?: string
+          invoice_date: string
+          milestone_description: string
+          startup_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          invoice_date?: string
+          milestone_description?: string
+          startup_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       procurement_needs: {
         Row: {
           budget_range: string
