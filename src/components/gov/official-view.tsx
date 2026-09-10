@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
+  CalendarClock,
   FileText,
   Gauge,
   IndianRupee,
@@ -70,6 +71,79 @@ interface LedgerRow {
   prev_hash: string | null;
 }
 
+interface PaymentMilestone {
+  id: string;
+  startup_name: string;
+  milestone_description: string;
+  invoice_date: string;
+  due_date: string;
+  status: "pending" | "paid" | "overdue";
+  amount: number;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function daysUntil(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dateStr);
+  due.setHours(0, 0, 0, 0);
+  return Math.round((due.getTime() - today.getTime()) / DAY_MS);
+}
+
+function urgencyRank(m: PaymentMilestone): number {
+  if (m.status === "paid") return 3;
+  const remaining = daysUntil(m.due_date);
+  if (remaining < 0) return 0; // overdue first
+  return 1; // then by soonest due
+}
+
+function sortByUrgency(list: PaymentMilestone[]): PaymentMilestone[] {
+  return [...list].sort((a, b) => {
+    const ra = urgencyRank(a);
+    const rb = urgencyRank(b);
+    if (ra !== rb) return ra - rb;
+    return daysUntil(a.due_date) - daysUntil(b.due_date);
+  });
+}
+
+function formatINR(amount: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function statusBadge(m: PaymentMilestone) {
+  if (m.status === "paid") {
+    return (
+      <Badge className="border-green-200 bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>
+    );
+  }
+  const remaining = daysUntil(m.due_date);
+  if (remaining < 0) {
+    return (
+      <Badge className="border-red-200 bg-red-100 text-red-800 hover:bg-red-100">
+        Overdue by {Math.abs(remaining)}d
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="border-yellow-200 bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+      Due in {remaining}d
+    </Badge>
+  );
+}
+
 export function OfficialView() {
   const runMemo = useServerFn(generateGfrMemo);
   const runScorecard = useServerFn(pilotScorecard);
@@ -87,16 +161,24 @@ export function OfficialView() {
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [milestones, setMilestones] = useState<PaymentMilestone[]>([]);
+  const [milestonesLoading, setMilestonesLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       supabase.from("procurement_needs").select("id, department, need_description").order("created_at"),
       supabase.from("startup_pitches").select("startup_name").order("created_at"),
-    ]).then(([needRes, startupRes]) => {
+      supabase
+        .from("payment_milestones")
+        .select("id, startup_name, milestone_description, invoice_date, due_date, status, amount")
+        .order("due_date"),
+    ]).then(([needRes, startupRes, milestoneRes]) => {
       if (cancelled) return;
       setNeeds(needRes.data ?? []);
       setStartups((startupRes.data ?? []).map((s) => s.startup_name));
+      setMilestones(sortByUrgency((milestoneRes.data ?? []) as PaymentMilestone[]));
+      setMilestonesLoading(false);
     });
     return () => {
       cancelled = true;
@@ -308,6 +390,64 @@ export function OfficialView() {
             <p className="text-sm text-slate-500">
               Run the scorecard to summarise pilot uptime and get a scale-up recommendation.
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarClock className="h-4 w-4" /> Payment Compliance Tracker
+          </CardTitle>
+          <CardDescription>
+            MSME Act 45-day payment rule — milestones are paid or interest is due.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {milestonesLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Startup</TableHead>
+                  <TableHead>Milestone</TableHead>
+                  <TableHead>Invoice Date</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {milestones.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium text-slate-900">{m.startup_name}</TableCell>
+                    <TableCell className="text-sm text-slate-600">{m.milestone_description}</TableCell>
+                    <TableCell className="font-mono text-xs text-slate-600">
+                      {formatDate(m.invoice_date)}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-600">
+                      {formatDate(m.due_date)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-slate-900">
+                      {formatINR(m.amount)}
+                    </TableCell>
+                    <TableCell>{statusBadge(m)}</TableCell>
+                  </TableRow>
+                ))}
+                {milestones.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-sm text-slate-500">
+                      No payment milestones on file.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
