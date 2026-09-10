@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EligibilityCard } from "@/components/gov/eligibility-card";
 
 const API_KEY = "gem_sk_live_7f3c9a21b8e4d05fa6c1e29b4d77a310";
 
@@ -48,6 +49,8 @@ export function StartupView() {
 
   return (
     <div className="space-y-6">
+      <EligibilityCard />
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border-slate-200 md:col-span-1">
           <CardHeader>
