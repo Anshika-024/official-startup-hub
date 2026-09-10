@@ -44,7 +44,8 @@ async function callGateway(apiKey: string, prompt: string, jsonMode: boolean) {
       "X-Lovable-AIG-SDK": "fetch",
     },
     body: JSON.stringify({
-      model: "google/gemini-3.8-flash",
+      model: "openai/gpt-6-astra",
+      reasoning_effort: "low",
       messages: [{ role: "user", content: prompt }],
       ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
     }),

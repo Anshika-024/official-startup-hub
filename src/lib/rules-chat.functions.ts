@@ -103,7 +103,8 @@ export const askRules = createServerFn({ method: "POST" })
 
     const prompt = `You are a Government of India procurement rules assistant.
 
-Answer the user's question using ONLY the context below. Cite the exact rule_reference(s) you relied on inside your answer. If the context does not cover the question, reply exactly: "I don't have a rule on file for that."
+Answer the user's question using ONLY the context below. The context has been retrieved for this question, so treat it as relevant: if it is even partially related, answer helpfully from it and name the exact rule_reference(s) you used inside your answer. Explain what the rules do and do not permit rather than refusing.
+Reply exactly "I don't have a rule on file for that." ONLY when the context is about a completely different subject than the question.
 Keep the answer under 120 words, plain text, no markdown.
 
 CONTEXT
@@ -120,7 +121,8 @@ ${data.question}`;
         "X-Lovable-AIG-SDK": "fetch",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.8-flash",
+        model: "openai/gpt-6-astra",
+        reasoning_effort: "low",
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -136,13 +138,15 @@ ${data.question}`;
     const answer = (json.choices?.[0]?.message?.content ?? "").trim();
     if (!answer) throw new Error("AI returned an empty answer. Try again.");
 
-    const notFound = answer.toLowerCase().includes("don't have a rule on file");
-    const citations = notFound
-      ? []
-      : Array.from(new Set(rows.filter((r) => answer.includes(r.rule_reference)).map((r) => r.rule_reference)));
+    const normalised = answer.toLowerCase().replace(/[’']/g, "'");
+    const notFound =
+      normalised.replace(/[^a-z' ]/g, "").trim() === "i don't have a rule on file for that";
+    if (notFound) return { answer, citations: [] };
 
-    return {
-      answer,
-      citations: citations.length ? citations : notFound ? [] : [rows[0]!.rule_reference],
-    };
+    const mentioned = rows
+      .filter((r) => normalised.includes(r.rule_reference.toLowerCase()))
+      .map((r) => r.rule_reference);
+    const citations = Array.from(new Set(mentioned.length ? mentioned : [rows[0]!.rule_reference]));
+
+    return { answer, citations };
   });

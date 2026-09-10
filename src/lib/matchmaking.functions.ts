@@ -74,7 +74,8 @@ Return ONLY a JSON object of the form {"matches":[{"startup_name":string,"match_
         "X-Lovable-AIG-SDK": "fetch",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.8-flash",
+        model: "openai/gpt-6-astra",
+        reasoning_effort: "low",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       }),
