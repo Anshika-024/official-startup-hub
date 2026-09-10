@@ -12,13 +12,28 @@ type StartupRow = {
   verification_status: string;
 };
 
-const criteria = [
-  { label: "Prior Turnover Required", standard: true, relaxed: false },
-  { label: "Prior Experience Required", standard: true, relaxed: false },
-  { label: "EMD Required", standard: true, relaxed: false },
-];
+const CRITERIA_LABELS = [
+  "Prior Turnover Required",
+  "Prior Experience Required",
+  "EMD Required",
+] as const;
+
+const AGE_LIMIT_STATUS = "Ineligible: Exceeded 10-year limit (DPIIT G.S.R. 127(E))";
+
+/** True when incorporation is more than 10 years before today. */
+function exceedsAgeLimit(incorporationDate: string | null | undefined): boolean {
+  if (!incorporationDate) return false;
+  const inc = new Date(incorporationDate);
+  if (Number.isNaN(inc.getTime())) return false;
+  const limit = new Date();
+  limit.setFullYear(limit.getFullYear() - 10);
+  return inc.getTime() < limit.getTime();
+}
 
 function statusBadge(status: string) {
+  if (status === AGE_LIMIT_STATUS) {
+    return <Badge className="bg-red-600 text-white hover:bg-red-600">{AGE_LIMIT_STATUS}</Badge>;
+  }
   if (status === "verified") {
     return <Badge className="bg-green-600 text-white hover:bg-green-600">DPIIT Verified</Badge>;
   }
