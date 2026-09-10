@@ -120,9 +120,15 @@ export function RulesAssistant() {
               </div>
             ) : (
               <div key={message.id} className="flex flex-col items-start gap-2">
-                <p className="max-w-[90%] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800">
-                  {message.text}
-                </p>
+                <div className="relative max-w-[90%] border border-slate-300 bg-white px-3 py-2">
+                  <p className="text-sm text-slate-800">{message.text}</p>
+                  {message.isFallback && (
+                    <WifiOff
+                      aria-hidden="true"
+                      className="pointer-events-none absolute top-1 right-1 h-3 w-3 text-slate-500 opacity-40"
+                    />
+                  )}
+                </div>
                 {!!message.citations?.length && (
                   <div className="flex flex-wrap gap-2">
                     {message.citations.map((c) => (
