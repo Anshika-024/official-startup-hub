@@ -31,6 +31,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+
+function verdictBadgeClass(verdict: string) {
+  const value = verdict.toLowerCase();
+  if (value.includes("scale")) return "bg-green-600 text-white hover:bg-green-600";
+  if (value.includes("extend")) return "bg-yellow-500 text-white hover:bg-yellow-500";
+  if (value.includes("terminate") || value.includes("discontinue"))
+    return "bg-red-600 text-white hover:bg-red-600";
+  return "bg-slate-900 text-white hover:bg-slate-900";
+}
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
