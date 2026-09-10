@@ -161,6 +161,8 @@ export function OfficialView() {
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [milestones, setMilestones] = useState<PaymentMilestone[]>([]);
+  const [milestonesLoading, setMilestonesLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
