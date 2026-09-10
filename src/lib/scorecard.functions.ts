@@ -109,6 +109,8 @@ Reply with a json object only, no prose and no code fences, in this exact json s
       verdict: parsed.data.verdict,
       confidence: Math.max(0, Math.min(100, Math.round(parsed.data.confidence))),
       summary: parsed.data.summary,
+      totalEvents,
+      uptimePercent,
     };
   },
 );
