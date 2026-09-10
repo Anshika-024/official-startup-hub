@@ -169,10 +169,16 @@ export function OfficialView() {
     Promise.all([
       supabase.from("procurement_needs").select("id, department, need_description").order("created_at"),
       supabase.from("startup_pitches").select("startup_name").order("created_at"),
-    ]).then(([needRes, startupRes]) => {
+      supabase
+        .from("payment_milestones")
+        .select("id, startup_name, milestone_description, invoice_date, due_date, status, amount")
+        .order("due_date"),
+    ]).then(([needRes, startupRes, milestoneRes]) => {
       if (cancelled) return;
       setNeeds(needRes.data ?? []);
       setStartups((startupRes.data ?? []).map((s) => s.startup_name));
+      setMilestones(sortByUrgency(milestoneRes.data ?? []));
+      setMilestonesLoading(false);
     });
     return () => {
       cancelled = true;
