@@ -49,6 +49,8 @@ export function StartupView() {
 
   return (
     <div className="space-y-6">
+      <EligibilityCard />
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border-slate-200 md:col-span-1">
           <CardHeader>
