@@ -87,6 +87,17 @@ export function EligibilityCard() {
       })
     : "—";
 
+  const ageBarred = exceedsAgeLimit(startup?.incorporation_date);
+  const effectiveStatus = ageBarred
+    ? AGE_LIMIT_STATUS
+    : (startup?.verification_status ?? "not_eligible");
+  const criteria = CRITERIA_LABELS.map((label) => ({
+    label,
+    standard: true,
+    // Age-barred entities lose every startup waiver: standard GFR rules apply.
+    relaxed: ageBarred,
+  }));
+
   return (
     <Card className="border-slate-200">
       <CardHeader>
@@ -116,7 +127,7 @@ export function EligibilityCard() {
             </div>
             <div>
               <p className="text-sm text-slate-500">Status</p>
-              <div className="mt-1">{statusBadge(startup?.verification_status ?? "not_eligible")}</div>
+              <div className="mt-1">{statusBadge(effectiveStatus)}</div>
             </div>
           </div>
         )}
@@ -128,7 +139,9 @@ export function EligibilityCard() {
                 <th className="px-4 py-2 font-semibold">Criteria</th>
                 <th className="px-4 py-2 font-semibold">Standard GFR Criteria</th>
                 <th className="px-4 py-2 font-semibold">
-                  Startup-Relaxed Criteria (Rule 144 / MSE Order)
+                  {ageBarred
+                    ? "Applicable Criteria (No Startup Waiver)"
+                    : "Startup-Relaxed Criteria (Rule 144 / MSE Order)"}
                 </th>
               </tr>
             </thead>
@@ -146,6 +159,12 @@ export function EligibilityCard() {
               ))}
             </tbody>
           </table>
+          {ageBarred && (
+            <p className="border-t border-slate-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+              Entity exceeds the 10-year DPIIT age limit — standard GFR rules apply with no
+              startup relaxations.
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
