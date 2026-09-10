@@ -59,6 +59,7 @@ export function OfficialView() {
   const [startupName, setStartupName] = useState("");
   const [rows, setRows] = useState<LedgerRow[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,6 +129,32 @@ export function OfficialView() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleVerifyChain = async () => {
+    if (isVerifying) return;
+    setIsVerifying(true);
+    try {
+      const { data, error } = await supabase.rpc("verify_telemetry_chain");
+      if (error) throw new Error(error.message);
+      const result = (data ?? [])[0];
+      if (!result) throw new Error("Verification returned no result.");
+      if (result.is_valid) {
+        toast.success(
+          `Chain verified — ${result.total_records} records, no tampering detected`,
+        );
+      } else {
+        toast.error("Chain integrity broken", {
+          description: `First mismatch at record ${result.broken_ts} · ${result.broken_endpoint} (id ${result.broken_id}).`,
+        });
+      }
+    } catch (error) {
+      toast.error("Chain verification failed", {
+        description: error instanceof Error ? error.message : "Unexpected error.",
+      });
+    } finally {
+      setIsVerifying(false);
     }
   };
 
