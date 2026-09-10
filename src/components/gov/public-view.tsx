@@ -64,7 +64,7 @@ export function PublicView() {
         pitches.map((p, i) => ({
           label: `Startup #${i + 1}`,
           sector: p.sector,
-          verdict: VERDICTS[i % VERDICTS.length],
+          verdict: VERDICTS[i % VERDICTS.length] ?? "Scale",
           ts: p.created_at,
         })),
       );

@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { SidebarNav } from "@/components/gov/sidebar-nav";
 import { OfficialView } from "@/components/gov/official-view";
 import { StartupView } from "@/components/gov/startup-view";
+import { PublicView } from "@/components/gov/public-view";
 import { RulesAssistant } from "@/components/gov/rules-assistant";
 import { useActiveRole, type ActiveRole } from "@/hooks/use-active-role";
 
@@ -16,11 +17,18 @@ export default function App() {
     setMobileOpen(false);
   };
 
-  const title = activeRole === "official" ? "Department Official" : "Startup Vendor";
+  const title =
+    activeRole === "official"
+      ? "Department Official"
+      : activeRole === "startup"
+        ? "Startup Vendor"
+        : "Public Viewer";
   const subtitle =
     activeRole === "official"
       ? "Pilot oversight, budget guardrails and CVC-ready audit trails."
-      : "Sandbox health, gateway translation and integration credentials.";
+      : activeRole === "startup"
+        ? "Sandbox health, gateway translation and integration credentials."
+        : "Read-only transparency summary of pilot activity and outcomes.";
 
   return (
     <div className="min-h-screen bg-slate-50">
