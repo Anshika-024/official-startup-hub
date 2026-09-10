@@ -138,13 +138,15 @@ ${data.question}`;
     const answer = (json.choices?.[0]?.message?.content ?? "").trim();
     if (!answer) throw new Error("AI returned an empty answer. Try again.");
 
-    const notFound = answer.toLowerCase().includes("don't have a rule on file");
-    const citations = notFound
-      ? []
-      : Array.from(new Set(rows.filter((r) => answer.includes(r.rule_reference)).map((r) => r.rule_reference)));
+    const normalised = answer.toLowerCase().replace(/[’']/g, "'");
+    const notFound =
+      normalised.replace(/[^a-z' ]/g, "").trim() === "i don't have a rule on file for that";
+    if (notFound) return { answer, citations: [] };
 
-    return {
-      answer,
-      citations: citations.length ? citations : notFound ? [] : [rows[0]!.rule_reference],
-    };
+    const mentioned = rows
+      .filter((r) => normalised.includes(r.rule_reference.toLowerCase()))
+      .map((r) => r.rule_reference);
+    const citations = Array.from(new Set(mentioned.length ? mentioned : [rows[0]!.rule_reference]));
+
+    return { answer, citations };
   });
