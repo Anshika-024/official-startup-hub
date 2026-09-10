@@ -353,6 +353,50 @@ export function OfficialView() {
       <Card className="border-slate-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
+            <Gauge className="h-4 w-4" /> AI Pilot Performance Scorecard
+          </CardTitle>
+          <CardDescription>
+            Evaluate recorded pilot telemetry and recommend a scale-up decision.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            onClick={handleScorecard}
+            disabled={scorecardLoading}
+            className="bg-blue-800 text-white hover:bg-blue-900"
+          >
+            {scorecardLoading ? "Assessing…" : "Generate Pilot Scorecard"}
+          </Button>
+
+          {scorecardLoading && <Skeleton className="h-32 w-full" />}
+
+          {!scorecardLoading && scorecard && (
+            <div className="relative border border-slate-200 p-4">
+              {scorecardFallbackUsed && (
+                <WifiOff
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-slate-500 opacity-40"
+                />
+              )}
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs tracking-widest text-slate-500 uppercase">Verdict</span>
+                <Badge className="bg-slate-900 text-white hover:bg-slate-900">
+                  {scorecard.verdict}
+                </Badge>
+                <span className="ml-auto font-mono text-sm text-slate-600">
+                  {scorecard.confidence}% confidence
+                </span>
+              </div>
+              <Progress value={scorecard.confidence} className="mt-3 h-2" />
+              <p className="mt-3 text-sm text-slate-600">{scorecard.summary}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
             <FileText className="h-4 w-4" /> AI Compliance Shield
           </CardTitle>
           <CardDescription>
