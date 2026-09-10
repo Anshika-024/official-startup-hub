@@ -89,6 +89,36 @@ export type Database = {
         }
         Relationships: []
       }
+      startups: {
+        Row: {
+          created_at: string
+          dpiit_number: string | null
+          id: string
+          incorporation_date: string | null
+          startup_name: string
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          created_at?: string
+          dpiit_number?: string | null
+          id?: string
+          incorporation_date?: string | null
+          startup_name: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          created_at?: string
+          dpiit_number?: string | null
+          id?: string
+          incorporation_date?: string | null
+          startup_name?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
       telemetry_ledger: {
         Row: {
           action: string
