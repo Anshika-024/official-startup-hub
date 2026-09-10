@@ -177,7 +177,7 @@ export function OfficialView() {
       if (cancelled) return;
       setNeeds(needRes.data ?? []);
       setStartups((startupRes.data ?? []).map((s) => s.startup_name));
-      setMilestones(sortByUrgency(milestoneRes.data ?? []));
+      setMilestones(sortByUrgency((milestoneRes.data ?? []) as PaymentMilestone[]));
       setMilestonesLoading(false);
     });
     return () => {
