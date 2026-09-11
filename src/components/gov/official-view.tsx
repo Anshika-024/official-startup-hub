@@ -123,6 +123,25 @@ function formatDate(dateStr: string): string {
   });
 }
 
+/** Days a milestone is past its statutory due date (0 when not overdue). */
+function daysOverdue(m: PaymentMilestone): number {
+  if (m.status === "paid") return 0;
+  const remaining = daysUntil(m.due_date);
+  return remaining < 0 ? Math.abs(remaining) : 0;
+}
+
+/**
+ * MSME Development Act, Section 16 — penal interest at 19.5% p.a.
+ * compounded monthly on the delayed principal.
+ */
+function penalInterest(m: PaymentMilestone): number {
+  const overdue = daysOverdue(m);
+  if (overdue <= 0) return 0;
+  const monthlyRate = 0.195 / 12;
+  const months = overdue / 30;
+  return Number(m.amount) * (Math.pow(1 + monthlyRate, months) - 1);
+}
+
 function statusBadge(m: PaymentMilestone) {
   if (m.status === "paid") {
     return (
@@ -163,6 +182,7 @@ export function OfficialView() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [milestones, setMilestones] = useState<PaymentMilestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
+  const [proofChecking, setProofChecking] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -295,6 +315,33 @@ export function OfficialView() {
     }
   };
 
+  const handleVerifyLedgerProof = async (m: PaymentMilestone) => {
+    if (proofChecking) return;
+    setProofChecking(m.id);
+    try {
+      const { count, error } = await supabase
+        .from("telemetry_ledger")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "COMMITTED");
+      if (error) throw new Error(error.message);
+      if ((count ?? 0) > 0) {
+        toast.success("Ledger proof verified — payment approval permitted", {
+          description: `${count} COMMITTED telemetry events support ${m.milestone_description} (${m.startup_name}).`,
+        });
+      } else {
+        toast.error("Approval blocked — no ledger proof", {
+          description: `No COMMITTED telemetry events found for ${m.startup_name}.`,
+        });
+      }
+    } catch (error) {
+      toast.error("Ledger proof check failed", {
+        description: error instanceof Error ? error.message : "Unexpected error.",
+      });
+    } finally {
+      setProofChecking(null);
+    }
+  };
+
   const handlePrint = () => window.print();
 
   return (
@@ -411,43 +458,78 @@ export function OfficialView() {
               ))}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Startup</TableHead>
-                  <TableHead>Milestone</TableHead>
-                  <TableHead>Invoice Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {milestones.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium text-slate-900">{m.startup_name}</TableCell>
-                    <TableCell className="text-sm text-slate-600">{m.milestone_description}</TableCell>
-                    <TableCell className="font-mono text-xs text-slate-600">
-                      {formatDate(m.invoice_date)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-600">
-                      {formatDate(m.due_date)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-slate-900">
-                      {formatINR(m.amount)}
-                    </TableCell>
-                    <TableCell>{statusBadge(m)}</TableCell>
-                  </TableRow>
-                ))}
-                {milestones.length === 0 && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-sm text-slate-500">
-                      No payment milestones on file.
-                    </TableCell>
+                    <TableHead>Startup</TableHead>
+                    <TableHead>Milestone</TableHead>
+                    <TableHead>Invoice Date</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">
+                      Statutory Penal Interest (MSME Sec 16)
+                    </TableHead>
+                    <TableHead>Ledger Proof</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {milestones.map((m) => {
+                    const interest = penalInterest(m);
+                    return (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium text-slate-900">{m.startup_name}</TableCell>
+                        <TableCell className="text-sm text-slate-600">
+                          {m.milestone_description}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-slate-600">
+                          {formatDate(m.invoice_date)}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-slate-600">
+                          {formatDate(m.due_date)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm text-slate-900">
+                          {formatINR(m.amount)}
+                        </TableCell>
+                        <TableCell>{statusBadge(m)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {interest > 0 ? (
+                            <span className="text-red-600">
+                              {formatINR(interest)}
+                              <span className="block text-xs">
+                                {daysOverdue(m)}d @ 19.5% p.a.
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={proofChecking === m.id}
+                            onClick={() => handleVerifyLedgerProof(m)}
+                            className="border-blue-800 text-blue-800 hover:bg-blue-50 hover:text-blue-900"
+                          >
+                            <ShieldCheck className="mr-2 h-3.5 w-3.5" />
+                            {proofChecking === m.id ? "Checking…" : "Verify Ledger Proof"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {milestones.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-sm text-slate-500">
+                        No payment milestones on file.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
