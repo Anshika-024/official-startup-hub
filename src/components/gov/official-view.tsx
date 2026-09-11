@@ -315,6 +315,33 @@ export function OfficialView() {
     }
   };
 
+  const handleVerifyLedgerProof = async (m: PaymentMilestone) => {
+    if (proofChecking) return;
+    setProofChecking(m.id);
+    try {
+      const { count, error } = await supabase
+        .from("telemetry_ledger")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "COMMITTED");
+      if (error) throw new Error(error.message);
+      if ((count ?? 0) > 0) {
+        toast.success("Ledger proof verified — payment approval permitted", {
+          description: `${count} COMMITTED telemetry events support ${m.milestone_description} (${m.startup_name}).`,
+        });
+      } else {
+        toast.error("Approval blocked — no ledger proof", {
+          description: `No COMMITTED telemetry events found for ${m.startup_name}.`,
+        });
+      }
+    } catch (error) {
+      toast.error("Ledger proof check failed", {
+        description: error instanceof Error ? error.message : "Unexpected error.",
+      });
+    } finally {
+      setProofChecking(null);
+    }
+  };
+
   const handlePrint = () => window.print();
 
   return (
