@@ -458,43 +458,78 @@ export function OfficialView() {
               ))}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Startup</TableHead>
-                  <TableHead>Milestone</TableHead>
-                  <TableHead>Invoice Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {milestones.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium text-slate-900">{m.startup_name}</TableCell>
-                    <TableCell className="text-sm text-slate-600">{m.milestone_description}</TableCell>
-                    <TableCell className="font-mono text-xs text-slate-600">
-                      {formatDate(m.invoice_date)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-600">
-                      {formatDate(m.due_date)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-slate-900">
-                      {formatINR(m.amount)}
-                    </TableCell>
-                    <TableCell>{statusBadge(m)}</TableCell>
-                  </TableRow>
-                ))}
-                {milestones.length === 0 && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-sm text-slate-500">
-                      No payment milestones on file.
-                    </TableCell>
+                    <TableHead>Startup</TableHead>
+                    <TableHead>Milestone</TableHead>
+                    <TableHead>Invoice Date</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">
+                      Statutory Penal Interest (MSME Sec 16)
+                    </TableHead>
+                    <TableHead>Ledger Proof</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {milestones.map((m) => {
+                    const interest = penalInterest(m);
+                    return (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium text-slate-900">{m.startup_name}</TableCell>
+                        <TableCell className="text-sm text-slate-600">
+                          {m.milestone_description}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-slate-600">
+                          {formatDate(m.invoice_date)}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-slate-600">
+                          {formatDate(m.due_date)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm text-slate-900">
+                          {formatINR(m.amount)}
+                        </TableCell>
+                        <TableCell>{statusBadge(m)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {interest > 0 ? (
+                            <span className="text-red-600">
+                              {formatINR(interest)}
+                              <span className="block text-xs">
+                                {daysOverdue(m)}d @ 19.5% p.a.
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={proofChecking === m.id}
+                            onClick={() => handleVerifyLedgerProof(m)}
+                            className="border-blue-800 text-blue-800 hover:bg-blue-50 hover:text-blue-900"
+                          >
+                            <ShieldCheck className="mr-2 h-3.5 w-3.5" />
+                            {proofChecking === m.id ? "Checking…" : "Verify Ledger Proof"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {milestones.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-sm text-slate-500">
+                        No payment milestones on file.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
