@@ -123,6 +123,25 @@ function formatDate(dateStr: string): string {
   });
 }
 
+/** Days a milestone is past its statutory due date (0 when not overdue). */
+function daysOverdue(m: PaymentMilestone): number {
+  if (m.status === "paid") return 0;
+  const remaining = daysUntil(m.due_date);
+  return remaining < 0 ? Math.abs(remaining) : 0;
+}
+
+/**
+ * MSME Development Act, Section 16 — penal interest at 19.5% p.a.
+ * compounded monthly on the delayed principal.
+ */
+function penalInterest(m: PaymentMilestone): number {
+  const overdue = daysOverdue(m);
+  if (overdue <= 0) return 0;
+  const monthlyRate = 0.195 / 12;
+  const months = overdue / 30;
+  return Number(m.amount) * (Math.pow(1 + monthlyRate, months) - 1);
+}
+
 function statusBadge(m: PaymentMilestone) {
   if (m.status === "paid") {
     return (
