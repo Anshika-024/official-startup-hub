@@ -182,6 +182,7 @@ export function OfficialView() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [milestones, setMilestones] = useState<PaymentMilestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
+  const [proofChecking, setProofChecking] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
