@@ -125,7 +125,7 @@ Return ONLY {"match_score": number 0-100}.`;
       timeZone: "Asia/Kolkata",
     });
 
-    const memoPrompt = `Draft a formal Government of India Office Memorandum as a json object. Output plain text only (no markdown, no code fences, no asterisks).`
+    const memoPrompt = `Draft a formal Government of India Office Memorandum as a json object. Output plain text only (no markdown, no code fences, no asterisks).`;
 
 Structure it with these clearly labelled sections in order:
 Government of India / Ministry of Electronics & Information Technology / OFFICE MEMORANDUM header block
