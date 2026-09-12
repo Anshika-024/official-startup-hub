@@ -22,6 +22,16 @@ function createPublicClient() {
   const url = process.env["SUPABASE_URL"]!;
   return createClient<Database>(url, key, {
     auth: { persistSession: false },
+    global: {
+      fetch: (input, init) => {
+        const h = new Headers(init?.headers);
+        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
+          h.delete("Authorization");
+        }
+        h.set("apikey", key);
+        return fetch(input, { ...init, headers: h });
+      },
+    },
   });
 }
 
@@ -30,10 +40,12 @@ async function callGateway(apiKey: string, prompt: string, jsonMode: boolean) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      "Lovable-API-Key": apiKey,
+      "X-Lovable-AIG-SDK": "fetch",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "openai/gpt-6-astra",
+      reasoning_effort: "low",
       messages: [{ role: "user", content: prompt }],
       ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
     }),
@@ -53,6 +65,9 @@ async function callGateway(apiKey: string, prompt: string, jsonMode: boolean) {
 export const generateGfrMemo = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => MemoInput.parse(input))
   .handler(async ({ data }): Promise<GfrMemo> => {
+    const apiKey = process.env["LOVABLE_API_KEY"];
+    if (!apiKey) throw new Error("AI is not configured for this project.");
+
     const supabase = createPublicClient();
 
     const [needRes, pitchRes, committedRes] = await Promise.all([
@@ -84,15 +99,23 @@ export const generateGfrMemo = createServerFn({ method: "POST" })
 
     let matchScore = data.matchScore ?? null;
     if (matchScore === null || matchScore === undefined) {
-      // Deterministic mock score (no AI call) — avoids the Gateway's
-      // response_format json_object quirk entirely. Same pitch+need pair
-      // always yields the same score, so it looks consistent across reruns.
-      const seedText = `${pitch.startup_name}|${need.need_description}`;
-      let hash = 0;
-      for (let i = 0; i < seedText.length; i++) {
-        hash = (hash * 31 + seedText.charCodeAt(i)) >>> 0;
-      }
-      matchScore = 55 + (hash % 41); // lands in a believable 55-95 range
+      const scorePrompt = `Score how well this startup fits the procurement need.
+
+PROCUREMENT NEED
+Department: ${need.department}
+Budget: ${need.budget_range}
+Description: ${need.need_description}
+
+STARTUP
+${pitch.startup_name} [${pitch.sector}]: ${pitch.pitch_text}
+
+Return ONLY {"match_score": number 0-100}.`;
+      const raw = await callGateway(apiKey, scorePrompt, true);
+      const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+      const parsed = z
+        .object({ match_score: z.coerce.number() })
+        .safeParse(JSON.parse(cleaned || "{}"));
+      matchScore = parsed.success ? parsed.data.match_score : 0;
     }
     matchScore = Math.max(0, Math.min(100, Math.round(matchScore)));
 
@@ -102,31 +125,28 @@ export const generateGfrMemo = createServerFn({ method: "POST" })
       timeZone: "Asia/Kolkata",
     });
 
-    const memoText = `GOVERNMENT OF INDIA
-MINISTRY OF ELECTRONICS & INFORMATION TECHNOLOGY
-OFFICE MEMORANDUM
+    const memoPrompt = `Draft a formal Government of India Office Memorandum as a json object. Output plain text only (no markdown, no code fences, no asterisks).
 
-File No. GEM/2026/PIL/4471                                    Dated: ${generatedAt}
+Structure it with these clearly labelled sections in order:
+Government of India / Ministry of Electronics & Information Technology / OFFICE MEMORANDUM header block
+File No. GEM/2026/PIL/4471 and Dated: ${generatedAt}
+1. Subject
+2. Reference
+3. Justification
+4. Recommendation
+5. Approving Authority signature block (Deputy Secretary, Procurement Reform Division)
 
-1. Subject: Single-Source Procurement Approval under GFR 2017, Rule 166 — Pilot-Validated Startup Solution for ${need.department}
+Content requirements:
+- Cite Rule 166 of the General Financial Rules (GFR), 2017 and the applicable single-source (single tender enquiry) justification clause.
+- Procuring department: ${need.department}. Procurement need: ${need.need_description}. Indicative budget: ${need.budget_range}.
+- Proposed vendor: ${pitch.startup_name} (${pitch.sector}) — ${pitch.pitch_text}
+- Cite ${committed} COMMITTED telemetry ledger transactions as "operational pilot evidence" from the isolated sandbox, append-only and available for audit.
+- Cite the AI-assisted match score of ${matchScore}% as the "technical suitability assessment".
+- State CVC vigilance clearance status as "${cvcRisk}" with zero open observations.
+Use formal, restrained Indian government drafting language. Keep it under 500 words.`;
 
-2. Reference: General Financial Rules (GFR), 2017, Rule 166 (Procurement of Goods/Services without inviting quotations, applicable to DPIIT-recognized startups); Public Procurement Policy for Startups and Micro & Small Enterprises.
-
-3. Justification:
-   (a) The ${need.department} identified an operational requirement: ${need.need_description}, with an indicative budget of ${need.budget_range}.
-   (b) M/s ${pitch.startup_name} (${pitch.sector} sector) was engaged for a supervised sandbox pilot, proposing: ${pitch.pitch_text}
-   (c) The pilot generated ${committed} verified COMMITTED transactions in an append-only, tamper-evident telemetry ledger, constituting documented operational evidence of system performance.
-   (d) A technical suitability assessment placed the proposed vendor's fit against the stated requirement at ${matchScore}%, based on solution-need alignment.
-   (e) CVC vigilance review of this procurement action classifies the associated risk as "${cvcRisk}", with zero open observations recorded.
-
-4. Recommendation: In view of the above, it is recommended that single-source procurement from M/s ${pitch.startup_name} be approved under GFR 2017, Rule 166, subject to standard departmental financial concurrence and countersignature by the competent approving authority.
-
-5. This issues with the approval of the competent authority.
-
-
-                                                        (Approving Authority)
-                                                        Deputy Secretary
-                                                        Procurement Reform Division`;
+    const memoText = (await callGateway(apiKey, memoPrompt, false)).trim();
+    if (!memoText) throw new Error("AI returned an empty memorandum. Try again.");
 
     return {
       memo_text: memoText,
