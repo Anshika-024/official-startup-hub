@@ -53,9 +53,6 @@ async function callGateway(apiKey: string, prompt: string, jsonMode: boolean) {
 export const generateGfrMemo = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => MemoInput.parse(input))
   .handler(async ({ data }): Promise<GfrMemo> => {
-    const apiKey = process.env["LOVABLE_API_KEY"];
-    if (!apiKey) throw new Error("AI is not configured for this project.");
-
     const supabase = createPublicClient();
 
     const [needRes, pitchRes, committedRes] = await Promise.all([
@@ -105,28 +102,31 @@ export const generateGfrMemo = createServerFn({ method: "POST" })
       timeZone: "Asia/Kolkata",
     });
 
-    const memoPrompt = `Draft a formal Government of India Office Memorandum. Output plain text only — no markdown, no code fences, no asterisks, no JSON wrapper of any kind. Just the memo text itself.
+    const memoText = `GOVERNMENT OF INDIA
+MINISTRY OF ELECTRONICS & INFORMATION TECHNOLOGY
+OFFICE MEMORANDUM
 
-Structure it with these clearly labelled sections in order:
-Government of India / Ministry of Electronics & Information Technology / OFFICE MEMORANDUM header block
-File No. GEM/2026/PIL/4471 and Dated: ${generatedAt}
-1. Subject
-2. Reference
-3. Justification
-4. Recommendation
-5. Approving Authority signature block (Deputy Secretary, Procurement Reform Division)
+File No. GEM/2026/PIL/4471                                    Dated: ${generatedAt}
 
-Content requirements:
-- Cite Rule 166 of the General Financial Rules (GFR), 2017 and the applicable single-source (single tender enquiry) justification clause. Do not invent sub-clause numbers or dates beyond what is stated here — if uncertain, refer to it in general terms rather than fabricating specifics.
-- Procuring department: ${need.department}. Procurement need: ${need.need_description}. Indicative budget: ${need.budget_range}.
-- Proposed vendor: ${pitch.startup_name} (${pitch.sector}) — ${pitch.pitch_text}
-- Cite ${committed} COMMITTED telemetry ledger transactions as "operational pilot evidence" from the isolated sandbox, append-only and available for audit.
-- Cite the AI-assisted match score of ${matchScore}% as the "technical suitability assessment".
-- State CVC vigilance clearance status as "${cvcRisk}" with zero open observations.
-Use formal, restrained Indian government drafting language. Keep it under 500 words.`;
+1. Subject: Single-Source Procurement Approval under GFR 2017, Rule 166 — Pilot-Validated Startup Solution for ${need.department}
 
-    const memoText = (await callGateway(apiKey, memoPrompt, false)).trim();
-    if (!memoText) throw new Error("AI returned an empty memorandum. Try again.");
+2. Reference: General Financial Rules (GFR), 2017, Rule 166 (Procurement of Goods/Services without inviting quotations, applicable to DPIIT-recognized startups); Public Procurement Policy for Startups and Micro & Small Enterprises.
+
+3. Justification:
+   (a) The ${need.department} identified an operational requirement: ${need.need_description}, with an indicative budget of ${need.budget_range}.
+   (b) M/s ${pitch.startup_name} (${pitch.sector} sector) was engaged for a supervised sandbox pilot, proposing: ${pitch.pitch_text}
+   (c) The pilot generated ${committed} verified COMMITTED transactions in an append-only, tamper-evident telemetry ledger, constituting documented operational evidence of system performance.
+   (d) A technical suitability assessment placed the proposed vendor's fit against the stated requirement at ${matchScore}%, based on solution-need alignment.
+   (e) CVC vigilance review of this procurement action classifies the associated risk as "${cvcRisk}", with zero open observations recorded.
+
+4. Recommendation: In view of the above, it is recommended that single-source procurement from M/s ${pitch.startup_name} be approved under GFR 2017, Rule 166, subject to standard departmental financial concurrence and countersignature by the competent approving authority.
+
+5. This issues with the approval of the competent authority.
+
+
+                                                        (Approving Authority)
+                                                        Deputy Secretary
+                                                        Procurement Reform Division`;
 
     return {
       memo_text: memoText,
