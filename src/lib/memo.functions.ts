@@ -22,16 +22,6 @@ function createPublicClient() {
   const url = process.env["SUPABASE_URL"]!;
   return createClient<Database>(url, key, {
     auth: { persistSession: false },
-    global: {
-      fetch: (input, init) => {
-        const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
-          h.delete("Authorization");
-        }
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
-      },
-    },
   });
 }
 
@@ -40,12 +30,10 @@ async function callGateway(apiKey: string, prompt: string, jsonMode: boolean) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Lovable-API-Key": apiKey,
-      "X-Lovable-AIG-SDK": "fetch",
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "openai/gpt-6-astra",
-      reasoning_effort: "low",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
       ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
     }),
@@ -112,9 +100,14 @@ ${pitch.startup_name} [${pitch.sector}]: ${pitch.pitch_text}
 Return ONLY {"match_score": number 0-100}.`;
       const raw = await callGateway(apiKey, scorePrompt, true);
       const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-      const parsed = z
-        .object({ match_score: z.coerce.number() })
-        .safeParse(JSON.parse(cleaned || "{}"));
+
+      let parsedJson: unknown = {};
+      try {
+        parsedJson = JSON.parse(cleaned || "{}");
+      } catch {
+        parsedJson = {};
+      }
+      const parsed = z.object({ match_score: z.coerce.number() }).safeParse(parsedJson);
       matchScore = parsed.success ? parsed.data.match_score : 0;
     }
     matchScore = Math.max(0, Math.min(100, Math.round(matchScore)));
@@ -125,7 +118,7 @@ Return ONLY {"match_score": number 0-100}.`;
       timeZone: "Asia/Kolkata",
     });
 
-    const memoPrompt = `Draft a formal Government of India Office Memorandum as a json object. Output plain text only (no markdown, no code fences, no asterisks).
+    const memoPrompt = `Draft a formal Government of India Office Memorandum. Output plain text only — no markdown, no code fences, no asterisks, no JSON wrapper of any kind. Just the memo text itself.
 
 Structure it with these clearly labelled sections in order:
 Government of India / Ministry of Electronics & Information Technology / OFFICE MEMORANDUM header block
@@ -137,7 +130,7 @@ File No. GEM/2026/PIL/4471 and Dated: ${generatedAt}
 5. Approving Authority signature block (Deputy Secretary, Procurement Reform Division)
 
 Content requirements:
-- Cite Rule 166 of the General Financial Rules (GFR), 2017 and the applicable single-source (single tender enquiry) justification clause.
+- Cite Rule 166 of the General Financial Rules (GFR), 2017 and the applicable single-source (single tender enquiry) justification clause. Do not invent sub-clause numbers or dates beyond what is stated here — if uncertain, refer to it in general terms rather than fabricating specifics.
 - Procuring department: ${need.department}. Procurement need: ${need.need_description}. Indicative budget: ${need.budget_range}.
 - Proposed vendor: ${pitch.startup_name} (${pitch.sector}) — ${pitch.pitch_text}
 - Cite ${committed} COMMITTED telemetry ledger transactions as "operational pilot evidence" from the isolated sandbox, append-only and available for audit.
