@@ -97,7 +97,7 @@ Description: ${need.need_description}
 STARTUP
 ${pitch.startup_name} [${pitch.sector}]: ${pitch.pitch_text}
 
-Return ONLY {"match_score": number 0-100}.`;
+Return ONLY a JSON object in this exact form: {"match_score": number 0-100}.`;
       const raw = await callGateway(apiKey, scorePrompt, true);
       const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
 
