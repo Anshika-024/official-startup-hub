@@ -1,5 +1,16 @@
-import { Building2, Eye, LayoutDashboard, Rocket, ShieldCheck, Settings, Landmark } from "lucide-react";
+import {
+  Building2,
+  Eye,
+  LayoutDashboard,
+  Lock,
+  LogOut,
+  Rocket,
+  ShieldCheck,
+  Settings,
+  Landmark,
+} from "lucide-react";
 import type { ActiveRole } from "@/hooks/use-active-role";
+import type { AccountRole } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -11,9 +22,17 @@ const links = [
 export function SidebarNav({
   activeRole,
   onRoleChange,
+  accountRole,
+  displayName,
+  signedIn,
+  onSignOut,
 }: {
   activeRole: ActiveRole;
   onRoleChange: (role: ActiveRole) => void;
+  accountRole: AccountRole | null;
+  displayName: string | null;
+  signedIn: boolean;
+  onSignOut: () => void;
 }) {
   const roles: { id: ActiveRole; label: string; icon: typeof Building2 }[] = [
     { id: "official", label: "Department Official", icon: Building2 },
@@ -37,6 +56,7 @@ export function SidebarNav({
       <nav className="flex flex-col">
         {roles.map((role) => {
           const isActive = activeRole === role.id;
+          const locked = role.id !== "public" && accountRole !== role.id;
           return (
             <button
               key={role.id}
@@ -45,10 +65,12 @@ export function SidebarNav({
               className={cn(
                 "flex items-center gap-3 border-l-4 border-transparent px-5 py-3 text-left text-sm transition-colors hover:bg-slate-800",
                 isActive && "border-l-4 border-blue-500 bg-slate-800 font-semibold text-white",
+                locked && !isActive && "text-slate-500",
               )}
             >
               <role.icon className="h-4 w-4" />
-              {role.label}
+              <span className="flex-1">{role.label}</span>
+              {locked ? <Lock className="h-3.5 w-3.5 text-slate-500" aria-label="Sign-in required" /> : null}
             </button>
           );
         })}
@@ -73,8 +95,27 @@ export function SidebarNav({
         ))}
       </nav>
 
-      <div className="mt-auto border-t border-slate-800 px-5 py-4 text-xs text-slate-500">
-        Node: gov-cloud-ncr-01
+      <div className="mt-auto border-t border-slate-800 px-5 py-4">
+        {signedIn ? (
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-white">{displayName ?? "Signed in"}</p>
+              <p className="text-xs text-slate-500 capitalize">
+                {accountRole ? `${accountRole} account` : "No role assigned"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="flex w-full items-center gap-2 border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+            >
+              <LogOut className="h-4 w-4" /> Sign out
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500">Not signed in — public access only</p>
+        )}
+        <p className="mt-3 text-xs text-slate-500">Node: gov-cloud-ncr-01</p>
       </div>
     </div>
   );
