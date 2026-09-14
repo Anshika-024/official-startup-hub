@@ -259,6 +259,13 @@ export type Database = {
       }
       my_startup_name: { Args: never; Returns: string }
       public_pilot_budget: { Args: never; Returns: number }
+      public_pilot_contracts: {
+        Args: never
+        Returns: {
+          startup_name: string
+          total_amount: number
+        }[]
+      }
       telemetry_chain_payload: {
         Args: {
           _action: string
