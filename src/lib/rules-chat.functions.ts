@@ -83,7 +83,8 @@ export const askRules = createServerFn({ method: "POST" })
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("AI is not configured for this project.");
 
-    const supabase = createPublicClient();
+    // The rules library is server-only; retrieval runs with the backend client.
+    const { supabaseAdmin: supabase } = await import("@/integrations/supabase/client.server");
     const queryEmbedding = await embed(apiKey, data.question);
 
     const { data: matches, error } = await supabase.rpc("match_gfr_rules", {

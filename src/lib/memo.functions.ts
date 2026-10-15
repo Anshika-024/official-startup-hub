@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
 
 const MemoInput = z.object({
   needId: z.string().uuid(),
@@ -17,24 +16,6 @@ export interface GfrMemo {
   generated_at: string;
 }
 
-function createPublicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-  const url = process.env["SUPABASE_URL"]!;
-  return createClient<Database>(url, key, {
-    auth: { persistSession: false },
-    global: {
-      fetch: (input, init) => {
-        const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
-          h.delete("Authorization");
-        }
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
-      },
-    },
-  });
-}
-
 /** Deterministic technical-suitability score (72–98) derived from the inputs. */
 function deterministicMatchScore(startupName: string, needDescription: string): number {
   const seed = `${startupName.trim().toLowerCase()}::${needDescription.trim().toLowerCase()}`;
@@ -47,9 +28,10 @@ function deterministicMatchScore(startupName: string, needDescription: string): 
 }
 
 export const generateGfrMemo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => MemoInput.parse(input))
-  .handler(async ({ data }): Promise<GfrMemo> => {
-    const supabase = createPublicClient();
+  .handler(async ({ data, context }): Promise<GfrMemo> => {
+    const supabase = context.supabase;
 
     const [needRes, pitchRes, committedRes] = await Promise.all([
       supabase
