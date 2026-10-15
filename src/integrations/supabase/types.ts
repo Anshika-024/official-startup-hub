@@ -266,6 +266,14 @@ export type Database = {
           total_amount: number
         }[]
       }
+      public_pilot_vendors: {
+        Args: never
+        Returns: {
+          created_at: string
+          sector: string
+          startup_name: string
+        }[]
+      }
       telemetry_chain_payload: {
         Args: {
           _action: string
