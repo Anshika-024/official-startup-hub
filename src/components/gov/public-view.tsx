@@ -62,18 +62,20 @@ export function PublicView() {
     let cancelled = false;
     Promise.all([
       supabase.from("startup_pitches").select("startup_name, sector, created_at").order("created_at"),
-      supabase.from("payment_milestones").select("startup_name, amount"),
+      // Detailed payment records are officials-only; the public page reads
+      // per-vendor contract totals through a read-only aggregate helper.
+      supabase.rpc("public_pilot_contracts"),
       supabase.from("telemetry_ledger").select("id", { count: "exact", head: true }),
-    ]).then(([pitchRes, milestoneRes, ledgerRes]) => {
+    ]).then(([pitchRes, contractRes, ledgerRes]) => {
       if (cancelled) return;
       const pitches = pitchRes.data ?? [];
-      const milestones = milestoneRes.data ?? [];
+      const milestones = (contractRes.data ?? []).map((c) => ({
+        startup_name: c.startup_name,
+        amount: Number(c.total_amount ?? 0),
+      }));
       const valueByStartup = new Map<string, number>();
       for (const m of milestones) {
-        valueByStartup.set(
-          m.startup_name,
-          (valueByStartup.get(m.startup_name) ?? 0) + Number(m.amount ?? 0),
-        );
+        valueByStartup.set(m.startup_name, (valueByStartup.get(m.startup_name) ?? 0) + m.amount);
       }
       setOutcomes(
         pitches.map((p, i) => ({
