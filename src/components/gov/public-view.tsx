@@ -61,7 +61,8 @@ export function PublicView() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      supabase.from("startup_pitches").select("startup_name, sector, created_at").order("created_at"),
+      // Pitch text is private; the public page gets only vendor names and sectors.
+      supabase.rpc("public_pilot_vendors"),
       // Detailed payment records are officials-only; the public page reads
       // per-vendor contract totals through a read-only aggregate helper.
       supabase.rpc("public_pilot_contracts"),

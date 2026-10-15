@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
 
 const MatchInput = z.object({ needId: z.string().uuid() });
 
@@ -11,31 +10,14 @@ export interface StartupMatch {
   reasoning: string;
 }
 
-function createPublicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-  const url = process.env["SUPABASE_URL"]!;
-  return createClient<Database>(url, key, {
-    auth: { persistSession: false },
-    global: {
-      fetch: (input, init) => {
-        const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
-          h.delete("Authorization");
-        }
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
-      },
-    },
-  });
-}
-
 export const matchStartups = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => MatchInput.parse(input))
-  .handler(async ({ data }): Promise<StartupMatch[]> => {
+  .handler(async ({ data, context }): Promise<StartupMatch[]> => {
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("AI is not configured for this project.");
 
-    const supabase = createPublicClient();
+    const supabase = context.supabase;
 
     const [{ data: need, error: needError }, { data: pitches, error: pitchError }] =
       await Promise.all([
